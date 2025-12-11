@@ -1,1 +1,78 @@
-...
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voice Chess Online</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <div class="panel" id="board-wrapper">
+      <div id="board-container">
+        <div id="board"></div>
+        <div id="overlay">
+          <div class="overlay-box">
+            <h2 id="overlay-title"></h2>
+            <p id="overlay-text"></p>
+            <button class="button" id="overlay-btn">OK</button>
+          </div>
+        </div>
+      </div>
+      <div id="promotion" class="controls" aria-label="Promotion choices">
+        <button class="button" data-piece="q">Queen</button>
+        <button class="button" data-piece="r">Rook</button>
+        <button class="button" data-piece="b">Bishop</button>
+        <button class="button" data-piece="n">Knight</button>
+      </div>
+    </div>
+    <div id="side-panel">
+      <div class="panel">
+        <div class="heading">Status</div>
+        <div id="status">Ready.</div>
+        <div class="badge" id="mode-label">Mode: Human vs Computer</div>
+      </div>
+      <div class="panel">
+        <div class="heading">Voice Control</div>
+        <div id="voice-panel">
+          <button id="mic-btn" title="Voice input">&#127908;</button>
+          <div id="voice-status">Tap to start listening.</div>
+          <div id="voice-text"></div>
+          <div id="confirm-box">Did you mean: <span id="confirm-move"></span>? <div class="controls"><button class="button" id="confirm-yes">Yes</button><button class="button secondary" id="confirm-no">No</button></div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="heading">Move List</div>
+        <div id="history"></div>
+        <div class="controls" style="margin-top:10px;">
+          <button class="button" id="new-game">New Game</button>
+          <button class="button secondary" id="settings-btn">Settings</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="heading">Hint</div>
+        <div class="badge">Examples: "E two to E four", "Knight g one to f three", "Castle short".</div>
+      </div>
+    </div>
+  </div>
+  <div id="toast" class="toast"></div>
+  <div id="settings-overlay" class="panel" style="position:fixed; right:20px; bottom:20px; width:320px; display:none; z-index:5;">
+    <div class="heading">Settings</div>
+    <div class="settings-row"><label>Game mode</label><select id="mode">
+      <option value="hvc">Human vs Computer</option>
+      <option value="hvh">Human vs Human</option>
+      <option value="cvc">Computer vs Computer</option>
+    </select></div>
+    <div class="settings-row"><label>Engine strength</label><input type="range" min="1" max="3" value="2" id="depth"><span id="depth-label">Medium</span></div>
+    <div class="settings-row"><label>Theme</label><select id="theme">
+      <option value="dark">Dark</option>
+      <option value="light">Light</option>
+    </select></div>
+    <div class="settings-row"><label>Speech language</label><select id="language">
+      <option value="en">English</option>
+      <option value="de">German</option>
+    </select></div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
