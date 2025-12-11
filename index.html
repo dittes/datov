@@ -1,1 +1,226 @@
-...
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Datov Arcade</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0d1117;
+      --panel: #111827;
+      --accent: #8b5cf6;
+      --accent-2: #06b6d4;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 20% 20%, rgba(139,92,246,0.08), transparent 30%),
+                  radial-gradient(circle at 80% 10%, rgba(6,182,212,0.06), transparent 25%),
+                  linear-gradient(145deg, #0b1020, #0f172a);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 16px 60px;
+    }
+
+    .page {
+      width: min(1200px, 100%);
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      align-items: center;
+      text-align: center;
+      padding: 32px;
+      background: rgba(17, 24, 39, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: clamp(28px, 5vw, 42px);
+      letter-spacing: -0.5px;
+    }
+
+    header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.6;
+    }
+
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      padding: 12px 18px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #0b1020;
+      font-weight: 700;
+      text-decoration: none;
+      box-shadow: 0 10px 40px rgba(139, 92, 246, 0.25);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .cta:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 45px rgba(6, 182, 212, 0.25);
+    }
+
+    .grid {
+      margin-top: 28px;
+      display: grid;
+      gap: 18px;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+
+    .card {
+      background: rgba(17, 24, 39, 0.78);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 20% 20%, rgba(139,92,246,0.08), transparent 40%);
+      pointer-events: none;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #c4d3ff;
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      padding: 6px 10px;
+      border-radius: 999px;
+    }
+
+    .card h3 { margin: 0; font-size: 20px; }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .button.primary {
+      background: rgba(139, 92, 246, 0.2);
+      color: #e9d5ff;
+      border: 1px solid rgba(139, 92, 246, 0.4);
+    }
+
+    .button.secondary {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .button:hover { transform: translateY(-2px); }
+
+    footer {
+      margin-top: 28px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <div>
+        <h1>Datov Arcade</h1>
+        <p>Pick your next challenge from a growing catalog of voice-enabled and classic games. Start with Voice Chess and watch the library expand.</p>
+        <a class="cta" href="voice-chess/">Play Voice Chess →</a>
+      </div>
+    </header>
+
+    <section class="grid" aria-label="Game library">
+      <article class="card">
+        <span class="tag">New · Voice</span>
+        <h3>Voice Chess</h3>
+        <p>Command the board hands-free. Speak your moves, follow along with live transcription, and stay on top of captured pieces.</p>
+        <div class="actions">
+          <a class="button primary" href="voice-chess/">Launch game</a>
+          <a class="button secondary" href="voice-chess/#how-it-works">How it works</a>
+        </div>
+      </article>
+
+      <article class="card">
+        <span class="tag">Coming Soon</span>
+        <h3>Galaxy Run</h3>
+        <p>Dodge asteroids, collect energy, and race against time in a neon side-scroller built for quick sessions.</p>
+        <div class="actions">
+          <span class="button secondary" aria-disabled="true">Launching soon</span>
+        </div>
+      </article>
+
+      <article class="card">
+        <span class="tag">Coming Soon</span>
+        <h3>Puzzle Forge</h3>
+        <p>Craft elaborate solutions from a handful of tiles. Every move counts in this minimalist spatial puzzler.</p>
+        <div class="actions">
+          <span class="button secondary" aria-disabled="true">Launching soon</span>
+        </div>
+      </article>
+
+      <article class="card">
+        <span class="tag">Coming Soon</span>
+        <h3>Arcade Arena</h3>
+        <p>Challenge friends in quick-fire retro mini-games. Leaderboards, tournaments, and weekly challenges included.</p>
+        <div class="actions">
+          <span class="button secondary" aria-disabled="true">Launching soon</span>
+        </div>
+      </article>
+    </section>
+
+    <footer>
+      More titles will arrive regularly. Bookmark this page to stay in the loop.
+    </footer>
+  </main>
+</body>
+</html>

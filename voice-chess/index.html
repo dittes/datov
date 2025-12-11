@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice Chess | Datov Arcade</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0d1020;
+      --panel: #0f172a;
+      --accent: #22d3ee;
+      --accent-2: #a855f7;
+      --muted: #94a3b8;
+      --text: #e2e8f0;
+      --shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 20% 20%, rgba(168,85,247,0.08), transparent 32%),
+                  radial-gradient(circle at 85% 15%, rgba(34,211,238,0.08), transparent 30%),
+                  linear-gradient(135deg, #0b1020, #0b1225);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 32px 16px 48px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .page {
+      width: min(1100px, 100%);
+      display: grid;
+      gap: 20px;
+    }
+
+    header {
+      padding: 24px;
+      border-radius: var(--radius);
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: clamp(26px, 5vw, 36px);
+      letter-spacing: -0.5px;
+    }
+
+    header p { margin: 0; color: var(--muted); max-width: 680px; line-height: 1.6; }
+
+    .back-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    .layout {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: 1fr 320px;
+    }
+
+    @media (max-width: 960px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(36px, 1fr));
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      aspect-ratio: 1;
+    }
+
+    .square {
+      display: grid;
+      place-items: center;
+      font-size: clamp(18px, 2vw, 28px);
+      font-weight: 600;
+      color: #0f172a;
+      position: relative;
+      transition: transform 0.1s ease;
+    }
+
+    .square.dark { background: #0b5e64; }
+    .square.light { background: #9bdaf1; }
+
+    .square strong {
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      font-size: 10px;
+      color: rgba(0, 0, 0, 0.3);
+      font-weight: 700;
+    }
+
+    .controls {
+      display: grid;
+      gap: 10px;
+    }
+
+    button, .ghost {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #0b1020;
+      box-shadow: 0 10px 40px rgba(168, 85, 247, 0.35);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    }
+
+    button:hover { transform: translateY(-2px); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+    .ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: none;
+      text-align: center;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .log {
+      max-height: 220px;
+      overflow: auto;
+      display: grid;
+      gap: 10px;
+      padding-right: 4px;
+    }
+
+    .log-item {
+      padding: 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      line-height: 1.5;
+    }
+
+    .note {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      min-width: 180px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text);
+    }
+
+    small { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div>
+        <a class="back-link" href="../">← Back to arcade</a>
+        <h1>Voice Chess</h1>
+        <p>Call your moves aloud, watch them transcribed in real time, and track the board at a glance. Web Speech API powers the microphone; manual commands are available when speech recognition isn’t supported.</p>
+      </div>
+      <div class="pill">Beta · Browser-based speech recognition</div>
+    </header>
+
+    <div class="layout">
+      <section class="panel" aria-label="Chess board">
+        <div class="board" id="board" aria-live="polite"></div>
+      </section>
+
+      <section class="panel" aria-label="Voice controls and transcript">
+        <div class="controls">
+          <div class="input-row">
+            <button id="toggle">Start listening</button>
+            <button id="reset" class="ghost" type="button">Reset board</button>
+          </div>
+          <div class="input-row">
+            <input id="manualCommand" type="text" placeholder="Type a command, e.g. 'white pawn to E4'" />
+            <button id="submit" type="button">Log command</button>
+          </div>
+          <small id="status">Speech recognition ready.</small>
+          <div class="log" id="log" aria-live="polite"></div>
+          <p class="note" id="how-it-works">
+            Say moves naturally: “Knight to f3”, “Black queen takes d4”, or “castle kingside”. A transcript of each command appears above so you can keep pace with the board.
+          </p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const boardEl = document.getElementById('board');
+    const statusEl = document.getElementById('status');
+    const logEl = document.getElementById('log');
+    const toggleBtn = document.getElementById('toggle');
+    const submitBtn = document.getElementById('submit');
+    const resetBtn = document.getElementById('reset');
+    const manualInput = document.getElementById('manualCommand');
+
+    const files = { white: { king: '♔', queen: '♕', rook: '♖', bishop: '♗', knight: '♘', pawn: '♙' }, black: { king: '♚', queen: '♛', rook: '♜', bishop: '♝', knight: '♞', pawn: '♟' } };
+    let boardState = [];
+
+    function buildBoard() {
+      boardState = [];
+      const ranks = ['8', '7', '6', '5', '4', '3', '2', '1'];
+      const filesArr = ['A','B','C','D','E','F','G','H'];
+      boardEl.innerHTML = '';
+
+      const template = [
+        [files.black.rook, files.black.knight, files.black.bishop, files.black.queen, files.black.king, files.black.bishop, files.black.knight, files.black.rook],
+        Array(8).fill(files.black.pawn),
+        ...Array(4).fill(Array(8).fill('')),
+        Array(8).fill(files.white.pawn),
+        [files.white.rook, files.white.knight, files.white.bishop, files.white.queen, files.white.king, files.white.bishop, files.white.knight, files.white.rook]
+      ];
+
+      ranks.forEach((rank, rowIndex) => {
+        filesArr.forEach((file, colIndex) => {
+          const isDark = (rowIndex + colIndex) % 2 === 0;
+          const square = document.createElement('div');
+          square.className = `square ${isDark ? 'dark' : 'light'}`;
+          square.dataset.position = `${file}${rank}`;
+          const piece = template[rowIndex]?.[colIndex] ?? '';
+          square.textContent = piece;
+          const label = document.createElement('strong');
+          label.textContent = `${file}${rank}`;
+          square.appendChild(label);
+          boardEl.appendChild(square);
+          boardState.push({ position: `${file}${rank}`, piece });
+        });
+      });
+    }
+
+    function logCommand(text, source = 'Voice') {
+      if (!text) return;
+      const item = document.createElement('div');
+      item.className = 'log-item';
+      item.innerHTML = `<strong>${source}:</strong> ${text}`;
+      logEl.prepend(item);
+    }
+
+    function setStatus(message) {
+      statusEl.textContent = message;
+    }
+
+    buildBoard();
+
+    let recognition;
+    let listening = false;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.lang = 'en-US';
+      recognition.interimResults = false;
+
+      recognition.onresult = (event) => {
+        const transcript = Array.from(event.results)
+          .slice(event.resultIndex)
+          .map(result => result[0].transcript)
+          .join(' ')
+          .trim();
+        logCommand(transcript);
+      };
+
+      recognition.onstart = () => setStatus('Listening… speak a move.');
+      recognition.onend = () => {
+        listening = false;
+        toggleBtn.textContent = 'Start listening';
+        setStatus('Speech recognition ready.');
+      };
+      recognition.onerror = () => setStatus('Microphone error. Please retry.');
+    } else {
+      toggleBtn.disabled = true;
+      setStatus('Speech recognition not available in this browser. Use manual commands below.');
+    }
+
+    toggleBtn.addEventListener('click', () => {
+      if (!recognition) return;
+      if (listening) {
+        recognition.stop();
+        listening = false;
+        toggleBtn.textContent = 'Start listening';
+        setStatus('Speech recognition paused.');
+        return;
+      }
+      listening = true;
+      toggleBtn.textContent = 'Stop listening';
+      recognition.start();
+    });
+
+    submitBtn.addEventListener('click', () => {
+      const value = manualInput.value.trim();
+      logCommand(value, 'Manual');
+      if (value) {
+        setStatus('Command saved. Mirror this phrasing with your voice.');
+        manualInput.value = '';
+      }
+    });
+
+    manualInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        submitBtn.click();
+      }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      buildBoard();
+      logCommand('Board reset to starting position.', 'System');
+      setStatus('Board refreshed.');
+    });
+  </script>
+</body>
+</html>
