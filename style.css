@@ -225,7 +225,8 @@ p {
 
 /* --- Game Grid --- */
 .games-grid {
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: 2rem;
 }
 
@@ -238,6 +239,32 @@ p {
     position: relative;
     display: flex;
     flex-direction: column;
+}
+
+/* ... (rest of card styles remain the same) ... */
+
+/* --- Mobile Responsive --- */
+@media (max-width: 1024px) {
+    .games-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    h1 {
+        font-size: 2.5rem;
+    }
+
+    .container {
+        padding: 0 1rem;
+    }
+
+    .games-grid {
+        gap: 1rem;
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* ... (rest of mobile styles) ... */
 }
 
 .game-card:hover {
@@ -532,6 +559,12 @@ p {
 }
 
 /* --- Mobile Responsive --- */
+@media (max-width: 1024px) {
+    .games-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
 @media (max-width: 768px) {
     h1 {
         font-size: 2.5rem;
@@ -543,7 +576,7 @@ p {
 
     .games-grid {
         gap: 1rem;
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        grid-template-columns: repeat(2, 1fr);
     }
 
     .nav-links {
