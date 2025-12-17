@@ -225,7 +225,8 @@ p {
 
 /* --- Game Grid --- */
 .games-grid {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
 }
 
 .game-card {
@@ -273,6 +274,7 @@ p {
     display: flex;
     gap: 0.5rem;
     margin-bottom: 0.8rem;
+    flex-wrap: wrap;
 }
 
 .tag {
@@ -307,6 +309,7 @@ p {
     font-weight: 600;
     text-align: center;
     transition: all 0.3s ease;
+    font-size: 1rem;
 }
 
 .game-card:hover .play-btn {
@@ -532,6 +535,15 @@ p {
 @media (max-width: 768px) {
     h1 {
         font-size: 2.5rem;
+    }
+
+    .container {
+        padding: 0 1rem;
+    }
+
+    .games-grid {
+        gap: 1rem;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     }
 
     .nav-links {

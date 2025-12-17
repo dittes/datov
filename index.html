@@ -19,16 +19,14 @@
             <a href="index.html" class="logo">DATOV</a>
 
             <nav>
-                <ul class="nav-links" id="navLinks">
-                    <li><a href="#games">Games</a></li>
-                    <li><a href="#popular">Popular</a></li>
-                    <li><a href="#new">New</a></li>
-                </ul>
-            </nav>
+                <div class="nav-links" id="navLinks">
+                    <a href="#" class="active">Home</a>
+                    <a href="#" onclick="GameInterface.showHowToPlay()">How to Play</a>
+                </div>
 
-            <div class="mobile-toggle" id="mobileToggle">
-                <i class="fas fa-bars"></i>
-            </div>
+                <div class="mobile-toggle" id="mobileToggle">
+                    <i class="fas fa-bars"></i>
+                </div>
         </div>
     </header>
 
@@ -526,7 +524,8 @@
             <script>
                 document.addEventListener('DOMContentLoaded', () => {
                     const filterBtns = document.querySelectorAll('.filter-btn');
-                    const gameCards = document.querySelectorAll('.game-card');
+                    const gamesGrid = document.querySelector('.games-grid');
+                    const allCards = Array.from(document.querySelectorAll('.game-card'));
 
                     filterBtns.forEach(btn => {
                         btn.addEventListener('click', () => {
@@ -536,14 +535,39 @@
 
                             const filter = btn.dataset.filter;
 
-                            gameCards.forEach(card => {
+                            // Filter cards
+                            const visibleCards = [];
+                            const hiddenCards = [];
+
+                            allCards.forEach(card => {
                                 if (filter === 'all' || card.dataset.category === filter) {
-                                    card.style.display = '';
+                                    visibleCards.push(card);
+                                    card.style.display = ''; // Reset to CSS display
                                     setTimeout(() => card.style.opacity = '1', 50);
                                 } else {
+                                    hiddenCards.push(card);
                                     card.style.opacity = '0';
-                                    setTimeout(() => card.style.display = 'none', 300);
+                                    card.style.display = 'none';
                                 }
+                            });
+
+                            // Reorder DOM: Visible first, then hidden (though hidden are display:none)
+                            // Actually, just appending visible ones is enough, but we want to keep all in DOM?
+                            // Best approach: Clear grid and append visible cards only? 
+                            // No, that breaks references.
+                            // Let's just append visible ones to the end to ensure they pack?
+                            // Wait, if they are display:none, they don't take space.
+                            // The issue might be that they are still in their original DOM positions?
+                            // No, display:none removes from flow.
+
+                            // Let's try physically moving visible cards to the top of the container.
+                            visibleCards.forEach(card => gamesGrid.appendChild(card));
+                            hiddenCards.forEach(card => gamesGrid.appendChild(card));
+
+                            // Ensure hidden ones are definitely hidden
+                            hiddenCards.forEach(card => {
+                                card.style.display = 'none';
+                                card.style.opacity = '0';
                             });
                         });
                     });
