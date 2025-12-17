@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NumberHunt - DATOV</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: rgba(21, 23, 37, 0.5);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 600px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem;
+            border-radius: var(--radius-sm);
+            margin-bottom: 1rem;
+        }
+
+        .hud-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .hud-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .hud-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .target-display {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--secondary);
+            text-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+            margin: 1rem 0;
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            from {
+                transform: scale(1);
+            }
+
+            to {
+                transform: scale(1.1);
+            }
+        }
+
+        .number-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 0.5rem;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .num-cell {
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .num-cell:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+            border-color: var(--primary);
+        }
+
+        .num-cell:active {
+            transform: scale(0.95);
+        }
+
+        .num-cell.correct {
+            background: var(--primary);
+            color: #000;
+            animation: pop 0.3s ease;
+        }
+
+        .num-cell.wrong {
+            background: #ff4444;
+            animation: shake 0.3s ease;
+        }
+
+        @keyframes pop {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.2);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-5px);
+            }
+
+            75% {
+                transform: translateX(5px);
+            }
+        }
+
+        .controls {
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="container flex flex-between">
+            <a href="index.html" class="logo">DATOV</a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html#games">Back to Games</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="section" style="padding-top: 8rem;">
+        <div class="container">
+            <div class="game-container">
+                <h2>NumberHunt</h2>
+
+                <div class="hud">
+                    <div class="hud-item">
+                        <span class="hud-label">Score</span>
+                        <span class="hud-value" id="score">0</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-label">Time</span>
+                        <span class="hud-value" id="time">60</span>
+                    </div>
+                </div>
+
+                <div class="target-display" id="targetNum">?</div>
+
+                <div class="number-grid" id="grid"></div>
+
+                <div class="controls">
+                    <button id="startBtn" class="btn btn-primary">Start Game</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="game-interface.js"></script>
+    <script>
+        const gridEl = document.getElementById('grid');
+        const scoreEl = document.getElementById('score');
+        const timeEl = document.getElementById('time');
+        const targetNumEl = document.getElementById('targetNum');
+        const startBtn = document.getElementById('startBtn');
+
+        let score = 0;
+        let timeLeft = 60;
+        let timerInterval;
+        let isPlaying = false;
+        let numbers = [];
+        let currentTarget = 0;
+        const GRID_SIZE = 40; // 40 numbers
+        const MAX_NUM = 100;
+
+        // Initialize Game Interface
+        GameInterface.init({
+            name: 'NumberHunt',
+            description: 'Fast-paced number finding game. Find the target number in the grid before time runs out.',
+            url: 'game-numberhunt.html',
+            howToPlay: [
+                'Click "Start Game" to begin.',
+                'Look at the large target number displayed.',
+                'Find and click that number in the grid below.',
+                'Correct clicks give points and a new target.',
+                'Wrong clicks deduct time.',
+                'Score as high as you can in 60 seconds!'
+            ]
+        });
+
+        startBtn.addEventListener('click', startGame);
+
+        function startGame() {
+            if (isPlaying) return;
+
+            score = 0;
+            timeLeft = 60;
+            isPlaying = true;
+
+            scoreEl.textContent = score;
+            timeEl.textContent = timeLeft;
+            startBtn.style.display = 'none';
+
+            generateGrid();
+            pickNewTarget();
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timeEl.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function generateGrid() {
+            gridEl.innerHTML = '';
+            numbers = [];
+
+            // Generate unique random numbers
+            while (numbers.length < GRID_SIZE) {
+                const n = Math.floor(Math.random() * MAX_NUM) + 1;
+                if (!numbers.includes(n)) {
+                    numbers.push(n);
+                }
+            }
+
+            // Shuffle (already random, but just to be sure order isn't sequential if we changed generation logic)
+            // numbers.sort(() => Math.random() - 0.5);
+
+            numbers.forEach(num => {
+                const cell = document.createElement('div');
+                cell.className = 'num-cell';
+                cell.textContent = num;
+                cell.dataset.num = num;
+                cell.addEventListener('click', () => handleCellClick(cell, num));
+                gridEl.appendChild(cell);
+            });
+        }
+
+        function pickNewTarget() {
+            // Pick a random number from the current grid
+            // We need to make sure the target is actually in the grid
+            // Since we don't remove numbers, any number in 'numbers' array is valid
+            // But wait, if we want to make it harder, maybe we regenerate grid sometimes?
+            // For now, static grid for the round is easier, or maybe regenerate one cell?
+
+            // Let's just pick from existing numbers
+            const idx = Math.floor(Math.random() * numbers.length);
+            currentTarget = numbers[idx];
+            targetNumEl.textContent = currentTarget;
+        }
+
+        function handleCellClick(cell, num) {
+            if (!isPlaying) return;
+
+            if (num === currentTarget) {
+                // Correct
+                score += 10;
+                scoreEl.textContent = score;
+                cell.classList.add('correct');
+
+                // Visual feedback reset
+                setTimeout(() => cell.classList.remove('correct'), 300);
+
+                // Regenerate this cell with a new number to keep grid dynamic?
+                // Or just pick a new target?
+                // Let's pick a new target.
+                // To make it interesting, let's swap this number with a new one so the grid changes slightly
+                const newNum = getNewUniqueNumber();
+                numbers[numbers.indexOf(num)] = newNum;
+                cell.textContent = newNum;
+                cell.dataset.num = newNum;
+
+                pickNewTarget();
+            } else {
+                // Wrong
+                timeLeft = Math.max(0, timeLeft - 2);
+                timeEl.textContent = timeLeft;
+                cell.classList.add('wrong');
+                setTimeout(() => cell.classList.remove('wrong'), 300);
+            }
+        }
+
+        function getNewUniqueNumber() {
+            let n;
+            do {
+                n = Math.floor(Math.random() * MAX_NUM) + 1;
+            } while (numbers.includes(n));
+            return n;
+        }
+
+        function endGame() {
+            isPlaying = false;
+            clearInterval(timerInterval);
+            startBtn.style.display = 'block';
+            startBtn.textContent = 'Play Again';
+            targetNumEl.textContent = '?';
+
+            GameInterface.showGameOver({
+                text: 'Time\'s Up!',
+                score: score,
+                level: 'Normal'
+            });
+        }
+
+    </script>
+</body>
+
+</html>

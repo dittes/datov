@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anagramania - DATOV</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            padding: 2rem;
+            background: rgba(21, 23, 37, 0.5);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .scrambled-word {
+            font-size: 3rem;
+            font-weight: 900;
+            letter-spacing: 0.5rem;
+            color: var(--primary);
+            text-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
+            text-align: center;
+            min-height: 80px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .input-area {
+            display: flex;
+            gap: 1rem;
+            width: 100%;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 1rem;
+            font-size: 1.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #fff;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            font-size: 1.2rem;
+            color: #aaa;
+        }
+
+        .score-val {
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .feedback {
+            height: 2rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .feedback.correct {
+            color: #4caf50;
+        }
+
+        .feedback.wrong {
+            color: #f44336;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-10px);
+            }
+
+            75% {
+                transform: translateX(10px);
+            }
+        }
+
+        .shake {
+            animation: shake 0.4s ease-in-out;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="container flex flex-between">
+            <a href="index.html" class="logo">DATOV</a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html#games">Back to Games</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="section" style="padding-top: 8rem;">
+        <div class="container">
+            <div class="game-container">
+                <div class="stats">
+                    <div>Score: <span id="score" class="score-val">0</span></div>
+                    <div>Time: <span id="timer" class="score-val">60</span>s</div>
+                </div>
+
+                <div id="scrambledWord" class="scrambled-word">LOADING</div>
+
+                <div id="feedback" class="feedback"></div>
+
+                <div class="input-area">
+                    <input type="text" id="guessInput" placeholder="TYPE HERE" autocomplete="off" maxlength="15">
+                    <button id="submitBtn" class="btn btn-primary">Enter</button>
+                </div>
+
+                <div class="controls">
+                    <button id="skipBtn" class="btn btn-outline">Skip (-5s)</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="game-interface.js"></script>
+    <script>
+        const scrambledEl = document.getElementById('scrambledWord');
+        const inputEl = document.getElementById('guessInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const skipBtn = document.getElementById('skipBtn');
+        const scoreEl = document.getElementById('score');
+        const timerEl = document.getElementById('timer');
+        const feedbackEl = document.getElementById('feedback');
+
+        const WORDS = [
+            'COMPUTER', 'INTERNET', 'PROGRAM', 'DEVELOPER', 'WEBSITE', 'BROWSER',
+            'DATABASE', 'SERVER', 'NETWORK', 'SOFTWARE', 'HARDWARE', 'KEYBOARD',
+            'MONITOR', 'LAPTOP', 'MOBILE', 'TABLET', 'SCREEN', 'PIXEL', 'VECTOR',
+            'GRAPHICS', 'DESIGN', 'CODING', 'SCRIPT', 'SYNTAX', 'ERROR', 'DEBUG',
+            'ALGORITHM', 'FUNCTION', 'VARIABLE', 'ARRAY', 'OBJECT', 'STRING',
+            'NUMBER', 'BOOLEAN', 'LOGIC', 'PUZZLE', 'GAMING', 'PLAYER', 'LEVEL',
+            'SCORE', 'WINNER', 'LOSER', 'START', 'PAUSE', 'RESUME', 'OPTION'
+        ];
+
+        let currentWord = '';
+        let score = 0;
+        let timeLeft = 60;
+        let timerInterval;
+        let isPlaying = false;
+
+        GameInterface.init({
+            name: 'Anagramania',
+            description: 'Unscramble the words as fast as you can!',
+            url: 'game-anagramania.html',
+            howToPlay: [
+                'A scrambled word will appear.',
+                'Type the correct word and press Enter.',
+                'Correct answers give points.',
+                'Skipping costs 5 seconds.',
+                'Get the highest score before time runs out!'
+            ]
+        });
+
+        function startGame() {
+            score = 0;
+            timeLeft = 60;
+            scoreEl.textContent = score;
+            timerEl.textContent = timeLeft;
+            isPlaying = true;
+            inputEl.value = '';
+            inputEl.focus();
+            feedbackEl.textContent = '';
+
+            nextWord();
+
+            clearInterval(timerInterval);
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function nextWord() {
+            currentWord = WORDS[Math.floor(Math.random() * WORDS.length)];
+            scrambledEl.textContent = scramble(currentWord);
+            inputEl.value = '';
+            inputEl.focus();
+        }
+
+        function scramble(word) {
+            const arr = word.split('');
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            // Ensure it's not the same as original
+            if (arr.join('') === word) return scramble(word);
+            return arr.join('');
+        }
+
+        function checkAnswer() {
+            if (!isPlaying) return;
+
+            const guess = inputEl.value.toUpperCase().trim();
+            if (guess === currentWord) {
+                score += 10 + Math.floor(currentWord.length / 2);
+                scoreEl.textContent = score;
+                feedbackEl.textContent = 'Correct!';
+                feedbackEl.className = 'feedback correct';
+                nextWord();
+            } else {
+                feedbackEl.textContent = 'Try Again';
+                feedbackEl.className = 'feedback wrong';
+                inputEl.classList.add('shake');
+                setTimeout(() => inputEl.classList.remove('shake'), 400);
+            }
+        }
+
+        function skipWord() {
+            if (!isPlaying) return;
+            timeLeft = Math.max(0, timeLeft - 5);
+            timerEl.textContent = timeLeft;
+            feedbackEl.textContent = `Skipped! Answer: ${currentWord}`;
+            feedbackEl.className = 'feedback wrong';
+            nextWord();
+        }
+
+        function updateTimer() {
+            timeLeft--;
+            timerEl.textContent = timeLeft;
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }
+
+        function endGame() {
+            isPlaying = false;
+            clearInterval(timerInterval);
+            GameInterface.showGameOver({
+                text: 'Time\'s Up!',
+                score: score,
+                level: 'Standard'
+            });
+        }
+
+        submitBtn.addEventListener('click', checkAnswer);
+        skipBtn.addEventListener('click', skipWord);
+
+        inputEl.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkAnswer();
+        });
+
+        // Start game on load
+        startGame();
+
+    </script>
+</body>
+
+</html>

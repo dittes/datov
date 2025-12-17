@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The WordHunt Game - DATOV</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: rgba(21, 23, 37, 0.5);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            background: #222;
+            padding: 10px;
+            border-radius: 8px;
+            touch-action: none;
+        }
+
+        .die {
+            width: 70px;
+            height: 70px;
+            background: #eee;
+            color: #333;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.1s, background 0.2s;
+        }
+
+        .die.selected {
+            background: var(--primary);
+            color: #000;
+            transform: scale(0.95);
+        }
+
+        .die.last {
+            border: 3px solid #fff;
+        }
+
+        .current-word {
+            min-height: 50px;
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+            text-align: center;
+        }
+
+        .found-list {
+            width: 100%;
+            height: 150px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-content: flex-start;
+        }
+
+        .found-word {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .timer {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .timer.low {
+            color: #f44336;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="container flex flex-between">
+            <a href="index.html" class="logo">DATOV</a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html#games">Back to Games</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="section" style="padding-top: 8rem;">
+        <div class="container">
+            <div class="game-container">
+                <div class="flex flex-between" style="width: 100%;">
+                    <div>Score: <span id="score">0</span></div>
+                    <div id="timer" class="timer">03:00</div>
+                </div>
+
+                <div class="current-word" id="currentWord"></div>
+
+                <div class="grid-container" id="grid">
+                    <!-- 4x4 Grid -->
+                </div>
+
+                <div class="found-list" id="foundList">
+                    <!-- Found words -->
+                </div>
+
+                <button id="newGameBtn" class="btn btn-primary">New Game</button>
+            </div>
+        </div>
+    </section>
+
+    <script src="game-interface.js"></script>
+    <script>
+        const gridEl = document.getElementById('grid');
+        const currentWordEl = document.getElementById('currentWord');
+        const foundListEl = document.getElementById('foundList');
+        const scoreEl = document.getElementById('score');
+        const timerEl = document.getElementById('timer');
+        const newGameBtn = document.getElementById('newGameBtn');
+
+        // Standard Boggle Dice
+        const DICE = [
+            "AAEEGN", "ABBJOO", "ACHOPS", "AFFKPS",
+            "AOOTTW", "CIMOTU", "DEILRX", "DELRVY",
+            "DISTTY", "EEGHNW", "EEINSU", "EHRTVW",
+            "EIOSST", "ELRTTY", "HIMNQU", "HLNNRZ"
+        ];
+
+        // Simple dictionary for demo (would need a real trie/set for production)
+        const DICTIONARY = new Set([
+            'THE', 'AND', 'FOR', 'ARE', 'BUT', 'NOT', 'YOU', 'ALL', 'ANY', 'CAN', 'HAD', 'HAS', 'HIM', 'HIS', 'HOW', 'INK', 'MAN', 'MAY', 'NEW', 'NOW', 'OLD', 'ONE', 'OUT', 'PUT', 'RUN', 'SAY', 'SHE', 'SIT', 'SON', 'SUN', 'TOO', 'TRY', 'USE', 'WAS', 'WAY', 'WHO', 'WHY', 'WIN', 'YES', 'YET',
+            'GAME', 'PLAY', 'TIME', 'WORD', 'HUNT', 'FIND', 'GRID', 'LIST', 'TEST', 'BEST', 'REST', 'WEST', 'EAST', 'SEAT', 'HEAT', 'BEAT', 'NEAT', 'MEAT', 'TEAM', 'RATE', 'LATE', 'GATE', 'HATE', 'FATE', 'DATE', 'MATE',
+            'START', 'STOP', 'TIMER', 'SCORE', 'POINT', 'LEVEL', 'ROUND', 'BOARD', 'PIECE', 'MOUSE', 'CLICK', 'TOUCH', 'SCREEN', 'PHONE', 'TABLE', 'CHAIR', 'HOUSE', 'MOUSE', 'HORSE', 'TIGER', 'LION', 'BEAR', 'WOLF',
+            'HELLO', 'WORLD', 'CODE', 'JAVA', 'HTML', 'CSS', 'NODE', 'DATA', 'FILE', 'EDIT', 'VIEW', 'TOOL', 'HELP', 'INFO', 'USER', 'NAME', 'PASS', 'WORD', 'TEXT', 'FONT', 'SIZE', 'COLOR', 'STYLE'
+        ]);
+
+        let grid = [];
+        let selectedDice = []; // Array of {r, c, char}
+        let foundWords = new Set();
+        let score = 0;
+        let timeLeft = 180;
+        let timerInterval;
+        let isDragging = false;
+
+        GameInterface.init({
+            name: 'The WordHunt Game',
+            description: 'Find as many words as you can in the grid.',
+            url: 'game-wordhunt.html',
+            howToPlay: [
+                'Drag across letters to form words.',
+                'Letters must be adjacent (horizontal, vertical, diagonal).',
+                'Each letter die can be used only once per word.',
+                'Words must be at least 3 letters long.'
+            ]
+        });
+
+        newGameBtn.addEventListener('click', startNewGame);
+
+        function startNewGame() {
+            clearInterval(timerInterval);
+            timeLeft = 180;
+            score = 0;
+            foundWords.clear();
+            selectedDice = [];
+            updateUI();
+
+            generateGrid();
+            renderGrid();
+
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function generateGrid() {
+            const shuffledDice = [...DICE].sort(() => 0.5 - Math.random());
+            grid = [];
+            for (let i = 0; i < 4; i++) {
+                const row = [];
+                for (let j = 0; j < 4; j++) {
+                    const die = shuffledDice[i * 4 + j];
+                    const char = die[Math.floor(Math.random() * 6)];
+                    row.push(char === 'Q' ? 'Qu' : char);
+                }
+                grid.push(row);
+            }
+        }
+
+        function renderGrid() {
+            gridEl.innerHTML = '';
+            for (let r = 0; r < 4; r++) {
+                for (let c = 0; c < 4; c++) {
+                    const die = document.createElement('div');
+                    die.className = 'die';
+                    die.textContent = grid[r][c];
+                    die.dataset.r = r;
+                    die.dataset.c = c;
+
+                    die.addEventListener('mousedown', handleStart);
+                    die.addEventListener('mouseenter', handleEnter);
+                    die.addEventListener('mouseup', handleEnd);
+
+                    die.addEventListener('touchstart', handleTouchStart, { passive: false });
+                    die.addEventListener('touchmove', handleTouchMove, { passive: false });
+                    die.addEventListener('touchend', handleEnd);
+
+                    gridEl.appendChild(die);
+                }
+            }
+        }
+
+        function handleStart(e) {
+            isDragging = true;
+            selectDie(e.target);
+        }
+
+        function handleEnter(e) {
+            if (isDragging) {
+                selectDie(e.target);
+            }
+        }
+
+        function handleEnd() {
+            if (!isDragging) return;
+            isDragging = false;
+            checkWord();
+            clearSelection();
+        }
+
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const el = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (el && el.classList.contains('die')) {
+                isDragging = true;
+                selectDie(el);
+            }
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (!isDragging) return;
+            const touch = e.touches[0];
+            const el = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (el && el.classList.contains('die')) {
+                selectDie(el);
+            }
+        }
+
+        function selectDie(el) {
+            const r = parseInt(el.dataset.r);
+            const c = parseInt(el.dataset.c);
+            const char = grid[r][c];
+
+            // Check if already selected (backtracking?)
+            const index = selectedDice.findIndex(d => d.r === r && d.c === c);
+            if (index !== -1) {
+                // If it's the second to last one, we are backtracking
+                if (index === selectedDice.length - 2) {
+                    selectedDice.pop();
+                    updateSelectionVisuals();
+                    return;
+                }
+                return; // Already selected and not backtracking
+            }
+
+            // Check adjacency
+            if (selectedDice.length > 0) {
+                const last = selectedDice[selectedDice.length - 1];
+                if (Math.abs(last.r - r) > 1 || Math.abs(last.c - c) > 1) return;
+            }
+
+            selectedDice.push({ r, c, char });
+            updateSelectionVisuals();
+        }
+
+        function updateSelectionVisuals() {
+            // Clear all visuals
+            document.querySelectorAll('.die').forEach(d => {
+                d.classList.remove('selected', 'last');
+            });
+
+            // Apply new visuals
+            let word = '';
+            selectedDice.forEach((d, i) => {
+                const el = document.querySelector(`.die[data-r="${d.r}"][data-c="${d.c}"]`);
+                if (el) {
+                    el.classList.add('selected');
+                    if (i === selectedDice.length - 1) el.classList.add('last');
+                }
+                word += d.char;
+            });
+            currentWordEl.textContent = word;
+        }
+
+        function clearSelection() {
+            selectedDice = [];
+            updateSelectionVisuals();
+            currentWordEl.textContent = '';
+        }
+
+        function checkWord() {
+            const word = currentWordEl.textContent;
+            if (word.length < 3) return;
+
+            if (foundWords.has(word)) {
+                showMessage('Already found!', 'warning');
+                return;
+            }
+
+            // In real app, check dictionary. Here we check our small set or just accept length > 3 for fun if not in set?
+            // Let's be strict with our small set for "correctness" but maybe lenient for demo?
+            // Let's just check length > 2 for demo purposes if not in dictionary, but give bonus if in dictionary.
+            // Actually, let's just use the set.
+
+            if (DICTIONARY.has(word.toUpperCase()) || word.length > 4) { // Allow long words even if not in small dict
+                foundWords.add(word);
+                const pts = calculateScore(word);
+                score += pts;
+                addFoundWord(word, pts);
+                updateUI();
+            } else {
+                showMessage('Unknown word', 'error');
+            }
+        }
+
+        function calculateScore(word) {
+            if (word.length <= 4) return 1;
+            if (word.length === 5) return 2;
+            if (word.length === 6) return 3;
+            if (word.length === 7) return 5;
+            return 11;
+        }
+
+        function addFoundWord(word, pts) {
+            const span = document.createElement('span');
+            span.className = 'found-word';
+            span.textContent = `${word} (${pts})`;
+            foundListEl.appendChild(span);
+        }
+
+        function showMessage(msg, type) {
+            currentWordEl.textContent = msg;
+            currentWordEl.style.color = type === 'error' ? '#f44336' : '#ff9800';
+            setTimeout(() => {
+                currentWordEl.style.color = 'var(--primary)';
+            }, 1000);
+        }
+
+        function updateUI() {
+            scoreEl.textContent = score;
+        }
+
+        function updateTimer() {
+            timeLeft--;
+            const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+            const s = (timeLeft % 60).toString().padStart(2, '0');
+            timerEl.textContent = `${m}:${s}`;
+
+            if (timeLeft <= 10) timerEl.classList.add('low');
+            else timerEl.classList.remove('low');
+
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                GameInterface.showGameOver({
+                    text: 'Time\'s Up!',
+                    score: score,
+                    level: 'Standard'
+                });
+            }
+        }
+
+        startNewGame();
+
+    </script>
+</body>
+
+</html>

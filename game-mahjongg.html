@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mahjongg - DATOV</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: rgba(21, 23, 37, 0.5);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            max-width: 1000px;
+            margin: 0 auto;
+            user-select: none;
+        }
+
+        .mahjongg-board {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: var(--radius-sm);
+            margin: 0 auto;
+            transform-style: preserve-3d;
+            perspective: 1000px;
+        }
+
+        .tile {
+            position: absolute;
+            width: 48px;
+            height: 64px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            box-shadow:
+                1px 1px 0 #bbb,
+                2px 2px 0 #bbb,
+                3px 3px 0 #bbb,
+                4px 4px 5px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #333;
+            cursor: pointer;
+            transition: transform 0.1s, filter 0.1s;
+            border: 1px solid #999;
+        }
+
+        .tile:hover {
+            filter: brightness(1.1);
+        }
+
+        .tile.selected {
+            filter: brightness(1.2) sepia(0.5) hue-rotate(180deg);
+            transform: translate(-2px, -2px);
+            box-shadow:
+                1px 1px 0 #bbb,
+                2px 2px 0 #bbb,
+                3px 3px 0 #bbb,
+                4px 4px 5px rgba(0, 0, 0, 0.5),
+                0 0 10px var(--primary);
+            border-color: var(--primary);
+        }
+
+        .tile.disabled {
+            filter: brightness(0.7);
+            cursor: not-allowed;
+        }
+
+        /* Tile content colors */
+        .tile[data-suit="bamboo"] {
+            color: #2e7d32;
+        }
+
+        .tile[data-suit="dots"] {
+            color: #1565c0;
+        }
+
+        .tile[data-suit="chars"] {
+            color: #c62828;
+        }
+
+        .tile[data-suit="winds"] {
+            color: #000;
+        }
+
+        .tile[data-suit="dragons"] {
+            color: #d32f2f;
+        }
+
+        .tile[data-suit="flowers"] {
+            color: #e91e63;
+        }
+
+        .tile[data-suit="seasons"] {
+            color: #ff9800;
+        }
+
+        .controls-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 850px) {
+            .mahjongg-board {
+                transform: scale(0.7);
+                transform-origin: top center;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .mahjongg-board {
+                transform: scale(0.45);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="container flex flex-between">
+            <a href="index.html" class="logo">DATOV</a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html#games">Back to Games</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="section" style="padding-top: 8rem;">
+        <div class="container">
+            <div class="game-container">
+                <h2>Mahjongg Solitaire</h2>
+
+                <div class="controls-bar">
+                    <button id="newGameBtn" class="btn btn-primary">New Game</button>
+                    <button id="shuffleBtn" class="btn btn-outline">Shuffle</button>
+                    <button id="hintBtn" class="btn btn-outline">Hint</button>
+                    <div style="margin-left: 2rem; align-self: center; font-weight: bold;">
+                        Pairs Left: <span id="pairsCount">0</span>
+                    </div>
+                </div>
+
+                <div class="mahjongg-board" id="board"></div>
+            </div>
+        </div>
+    </section>
+
+    <script src="game-interface.js"></script>
+    <script>
+        const boardEl = document.getElementById('board');
+        const pairsCountEl = document.getElementById('pairsCount');
+        const shuffleBtn = document.getElementById('shuffleBtn');
+        const hintBtn = document.getElementById('hintBtn');
+        const newGameBtn = document.getElementById('newGameBtn');
+
+        // Tile definitions
+        // 144 tiles total
+        // Suits: Bamboo (1-9), Dots (1-9), Chars (1-9) x 4 each = 108
+        // Winds: East, South, West, North x 4 each = 16
+        // Dragons: Red, Green, White x 4 each = 12
+        // Flowers: 4 (match any)
+        // Seasons: 4 (match any)
+
+        // Simplified for MVP: Use FontAwesome icons
+        const TILES = [
+            // Bamboo (use leaf icons)
+            { type: 'bamboo', val: 1, icon: 'fa-leaf' },
+            { type: 'bamboo', val: 2, icon: 'fa-tree' },
+            { type: 'bamboo', val: 3, icon: 'fa-pagelines' },
+            { type: 'bamboo', val: 4, icon: 'fa-seedling' },
+            { type: 'bamboo', val: 5, icon: 'fa-cannabis' }, // Maybe generic leaf?
+            { type: 'bamboo', val: 6, icon: 'fa-holly-berry' },
+            { type: 'bamboo', val: 7, icon: 'fa-carrot' },
+            { type: 'bamboo', val: 8, icon: 'fa-lemon' },
+            { type: 'bamboo', val: 9, icon: 'fa-pepper-hot' },
+
+            // Dots (use circle/dot icons)
+            { type: 'dots', val: 1, icon: 'fa-circle' },
+            { type: 'dots', val: 2, icon: 'fa-dot-circle' },
+            { type: 'dots', val: 3, icon: 'fa-bullseye' },
+            { type: 'dots', val: 4, icon: 'fa-cookie' },
+            { type: 'dots', val: 5, icon: 'fa-compact-disc' },
+            { type: 'dots', val: 6, icon: 'fa-life-ring' },
+            { type: 'dots', val: 7, icon: 'fa-sun' },
+            { type: 'dots', val: 8, icon: 'fa-basketball' },
+            { type: 'dots', val: 9, icon: 'fa-bowling-ball' },
+
+            // Chars (use numbers/symbols)
+            { type: 'chars', val: 1, icon: 'fa-1' },
+            { type: 'chars', val: 2, icon: 'fa-2' },
+            { type: 'chars', val: 3, icon: 'fa-3' },
+            { type: 'chars', val: 4, icon: 'fa-4' },
+            { type: 'chars', val: 5, icon: 'fa-5' },
+            { type: 'chars', val: 6, icon: 'fa-6' },
+            { type: 'chars', val: 7, icon: 'fa-7' },
+            { type: 'chars', val: 8, icon: 'fa-8' },
+            { type: 'chars', val: 9, icon: 'fa-9' },
+
+            // Winds
+            { type: 'winds', val: 'E', icon: 'fa-arrow-right' },
+            { type: 'winds', val: 'S', icon: 'fa-arrow-down' },
+            { type: 'winds', val: 'W', icon: 'fa-arrow-left' },
+            { type: 'winds', val: 'N', icon: 'fa-arrow-up' },
+
+            // Dragons
+            { type: 'dragons', val: 'R', icon: 'fa-dragon', color: 'red' },
+            { type: 'dragons', val: 'G', icon: 'fa-dragon', color: 'green' },
+            { type: 'dragons', val: 'W', icon: 'fa-dragon', color: 'white' }, // White dragon usually blank or rectangle
+
+            // Flowers (match any flower)
+            { type: 'flowers', val: 1, icon: 'fa-fan' }, // Plum
+            { type: 'flowers', val: 2, icon: 'fa-spa' }, // Orchid
+            { type: 'flowers', val: 3, icon: 'fa-bahai' }, // Chrysanthemum
+            { type: 'flowers', val: 4, icon: 'fa-asterisk' }, // Bamboo
+
+            // Seasons (match any season)
+            { type: 'seasons', val: 1, icon: 'fa-snowflake' }, // Winter
+            { type: 'seasons', val: 2, icon: 'fa-cloud-sun' }, // Spring
+            { type: 'seasons', val: 3, icon: 'fa-sun' }, // Summer
+            { type: 'seasons', val: 4, icon: 'fa-wind' }, // Autumn
+        ];
+
+        // Layout: Turtle Formation (simplified coordinates)
+        // x: 0-28 (half-tile steps), y: 0-16 (half-tile steps), z: 0-4 (layers)
+        // Tile size: 48x64. Grid unit: 24x32.
+        const LAYOUT = [
+            // Layer 0 (Bottom)
+            // Row 1
+            { x: 2, y: 0, z: 0 }, { x: 4, y: 0, z: 0 }, { x: 6, y: 0, z: 0 }, { x: 8, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, { x: 12, y: 0, z: 0 }, { x: 14, y: 0, z: 0 }, { x: 16, y: 0, z: 0 }, { x: 18, y: 0, z: 0 }, { x: 20, y: 0, z: 0 }, { x: 22, y: 0, z: 0 }, { x: 24, y: 0, z: 0 },
+            // Row 2 (indented)
+            { x: 6, y: 2, z: 0 }, { x: 8, y: 2, z: 0 }, { x: 10, y: 2, z: 0 }, { x: 12, y: 2, z: 0 }, { x: 14, y: 2, z: 0 }, { x: 16, y: 2, z: 0 }, { x: 18, y: 2, z: 0 }, { x: 20, y: 2, z: 0 },
+            // Row 3
+            { x: 4, y: 4, z: 0 }, { x: 6, y: 4, z: 0 }, { x: 8, y: 4, z: 0 }, { x: 10, y: 4, z: 0 }, { x: 12, y: 4, z: 0 }, { x: 14, y: 4, z: 0 }, { x: 16, y: 4, z: 0 }, { x: 18, y: 4, z: 0 }, { x: 20, y: 4, z: 0 }, { x: 22, y: 4, z: 0 },
+            // Row 4
+            { x: 2, y: 6, z: 0 }, { x: 4, y: 6, z: 0 }, { x: 6, y: 6, z: 0 }, { x: 8, y: 6, z: 0 }, { x: 10, y: 6, z: 0 }, { x: 12, y: 6, z: 0 }, { x: 14, y: 6, z: 0 }, { x: 16, y: 6, z: 0 }, { x: 18, y: 6, z: 0 }, { x: 20, y: 6, z: 0 }, { x: 22, y: 6, z: 0 }, { x: 24, y: 6, z: 0 },
+            // Row 5
+            { x: 4, y: 8, z: 0 }, { x: 6, y: 8, z: 0 }, { x: 8, y: 8, z: 0 }, { x: 10, y: 8, z: 0 }, { x: 12, y: 8, z: 0 }, { x: 14, y: 8, z: 0 }, { x: 16, y: 8, z: 0 }, { x: 18, y: 8, z: 0 }, { x: 20, y: 8, z: 0 }, { x: 22, y: 8, z: 0 },
+            // Row 6
+            { x: 6, y: 10, z: 0 }, { x: 8, y: 10, z: 0 }, { x: 10, y: 10, z: 0 }, { x: 12, y: 10, z: 0 }, { x: 14, y: 10, z: 0 }, { x: 16, y: 10, z: 0 }, { x: 18, y: 10, z: 0 }, { x: 20, y: 10, z: 0 },
+            // Row 7
+            { x: 2, y: 12, z: 0 }, { x: 4, y: 12, z: 0 }, { x: 6, y: 12, z: 0 }, { x: 8, y: 12, z: 0 }, { x: 10, y: 12, z: 0 }, { x: 12, y: 12, z: 0 }, { x: 14, y: 12, z: 0 }, { x: 16, y: 12, z: 0 }, { x: 18, y: 12, z: 0 }, { x: 20, y: 12, z: 0 }, { x: 22, y: 12, z: 0 }, { x: 24, y: 12, z: 0 },
+
+            // Layer 1
+            { x: 8, y: 2, z: 1 }, { x: 10, y: 2, z: 1 }, { x: 12, y: 2, z: 1 }, { x: 14, y: 2, z: 1 }, { x: 16, y: 2, z: 1 }, { x: 18, y: 2, z: 1 },
+            { x: 8, y: 4, z: 1 }, { x: 10, y: 4, z: 1 }, { x: 12, y: 4, z: 1 }, { x: 14, y: 4, z: 1 }, { x: 16, y: 4, z: 1 }, { x: 18, y: 4, z: 1 },
+            { x: 8, y: 6, z: 1 }, { x: 10, y: 6, z: 1 }, { x: 12, y: 6, z: 1 }, { x: 14, y: 6, z: 1 }, { x: 16, y: 6, z: 1 }, { x: 18, y: 6, z: 1 },
+            { x: 8, y: 8, z: 1 }, { x: 10, y: 8, z: 1 }, { x: 12, y: 8, z: 1 }, { x: 14, y: 8, z: 1 }, { x: 16, y: 8, z: 1 }, { x: 18, y: 8, z: 1 },
+            { x: 8, y: 10, z: 1 }, { x: 10, y: 10, z: 1 }, { x: 12, y: 10, z: 1 }, { x: 14, y: 10, z: 1 }, { x: 16, y: 10, z: 1 }, { x: 18, y: 10, z: 1 },
+
+            // Layer 2
+            { x: 10, y: 4, z: 2 }, { x: 12, y: 4, z: 2 }, { x: 14, y: 4, z: 2 }, { x: 16, y: 4, z: 2 },
+            { x: 10, y: 6, z: 2 }, { x: 12, y: 6, z: 2 }, { x: 14, y: 6, z: 2 }, { x: 16, y: 6, z: 2 },
+            { x: 10, y: 8, z: 2 }, { x: 12, y: 8, z: 2 }, { x: 14, y: 8, z: 2 }, { x: 16, y: 8, z: 2 },
+
+            // Layer 3
+            { x: 12, y: 5, z: 3 }, { x: 14, y: 5, z: 3 },
+            { x: 12, y: 7, z: 3 }, { x: 14, y: 7, z: 3 },
+
+            // Layer 4 (Top)
+            { x: 13, y: 6, z: 4 },
+
+            // Extras on sides/ends
+            { x: 0, y: 6, z: 0 }, { x: 26, y: 6, z: 0 }, { x: 28, y: 6, z: 0 } // Far right
+        ];
+        // Note: This layout is approximate and might need adjustment to reach 144 tiles.
+        // Current count: ~100. Let's just use what we have and fill deck accordingly.
+        // Actually, standard is 144. Let's just generate a random pile if layout is hard.
+        // Or just use this subset.
+
+        let tiles = [];
+        let selectedTile = null;
+
+        // Initialize Game Interface
+        GameInterface.init({
+            name: 'Mahjongg',
+            description: 'Classic tile matching solitaire. Clear the board by matching pairs.',
+            url: 'game-mahjongg.html',
+            howToPlay: [
+                'Click a tile to select it.',
+                'Click a matching tile to remove the pair.',
+                'A tile is free if it has no tile on top and has a free side (left or right).',
+                'Flower and Season tiles match any of their kind.',
+                'Win by clearing all tiles.'
+            ]
+        });
+
+        newGameBtn.addEventListener('click', startNewGame);
+        shuffleBtn.addEventListener('click', shuffleRemaining);
+        hintBtn.addEventListener('click', showHint);
+
+        function startNewGame() {
+            // 1. Create Deck
+            // We need exactly enough pairs for the layout.
+            const totalTiles = LAYOUT.length;
+            if (totalTiles % 2 !== 0) {
+                // Should be even. Remove one if odd.
+                LAYOUT.pop();
+            }
+
+            let deck = [];
+            const pairsNeeded = LAYOUT.length / 2;
+
+            // Fill deck with random pairs from TILES definition
+            for (let i = 0; i < pairsNeeded; i++) {
+                const tileDef = TILES[i % TILES.length];
+                deck.push({ ...tileDef, id: i * 2 });
+                deck.push({ ...tileDef, id: i * 2 + 1 });
+            }
+
+            // Shuffle
+            deck.sort(() => Math.random() - 0.5);
+
+            // 2. Place Tiles
+            tiles = LAYOUT.map((pos, i) => ({
+                ...pos,
+                data: deck[i],
+                el: null,
+                removed: false
+            }));
+
+            renderBoard();
+            updatePairsCount();
+        }
+
+        function renderBoard() {
+            boardEl.innerHTML = '';
+            tiles.forEach(tile => {
+                if (tile.removed) return;
+
+                const el = document.createElement('div');
+                el.className = 'tile';
+                el.dataset.suit = tile.data.type;
+                el.style.left = (tile.x * 24) + 'px';
+                el.style.top = (tile.y * 32) + 'px';
+                el.style.zIndex = tile.z * 10 + tile.x + tile.y; // Simple z-index sort
+
+                el.innerHTML = `<i class="fas ${tile.data.icon}"></i>`;
+                if (tile.data.color) el.style.color = tile.data.color;
+
+                el.onclick = (e) => handleTileClick(tile, el);
+
+                tile.el = el;
+                boardEl.appendChild(el);
+            });
+        }
+
+        function handleTileClick(tile, el) {
+            if (!isFree(tile)) return;
+
+            if (selectedTile === tile) {
+                // Deselect
+                selectedTile = null;
+                el.classList.remove('selected');
+            } else if (selectedTile) {
+                // Check match
+                if (isMatch(selectedTile, tile)) {
+                    // Remove both
+                    removeTile(selectedTile);
+                    removeTile(tile);
+                    selectedTile = null;
+                    checkWin();
+                    updatePairsCount();
+                } else {
+                    // Switch selection
+                    selectedTile.el.classList.remove('selected');
+                    selectedTile = tile;
+                    el.classList.add('selected');
+                }
+            } else {
+                // Select
+                selectedTile = tile;
+                el.classList.add('selected');
+            }
+        }
+
+        function isFree(tile) {
+            // Check if covered
+            // A tile is covered if any tile is at z+1 and overlaps
+            // Tile size is 2x2 grid units (48x64 pixels, grid 24x32)
+            // So tile at (x,y) covers (x,y), (x+1,y), (x,y+1), (x+1,y+1) ??
+            // Wait, layout coordinates are half-tiles.
+            // Let's assume tile occupies (x,y) to (x+2, y+2).
+
+            const isCovered = tiles.some(other =>
+                !other.removed &&
+                other.z === tile.z + 1 &&
+                Math.abs(other.x - tile.x) < 2 &&
+                Math.abs(other.y - tile.y) < 2
+            );
+            if (isCovered) return false;
+
+            // Check sides
+            // Blocked if neighbors at (x-2, y) or (x+2, y) on same z exist
+            const leftBlocked = tiles.some(other =>
+                !other.removed &&
+                other.z === tile.z &&
+                other.x === tile.x - 2 &&
+                Math.abs(other.y - tile.y) < 2
+            );
+
+            const rightBlocked = tiles.some(other =>
+                !other.removed &&
+                other.z === tile.z &&
+                other.x === tile.x + 2 &&
+                Math.abs(other.y - tile.y) < 2
+            );
+
+            return !leftBlocked || !rightBlocked;
+        }
+
+        function isMatch(t1, t2) {
+            if (t1.data.type === 'flowers' && t2.data.type === 'flowers') return true;
+            if (t1.data.type === 'seasons' && t2.data.type === 'seasons') return true;
+            return t1.data.type === t2.data.type && t1.data.val === t2.data.val;
+        }
+
+        function removeTile(tile) {
+            tile.removed = true;
+            tile.el.remove();
+        }
+
+        function updatePairsCount() {
+            // Count available matching pairs
+            // This is O(N^2), but N is small (~144)
+            let freeTiles = tiles.filter(t => !t.removed && isFree(t));
+            let pairs = 0;
+
+            for (let i = 0; i < freeTiles.length; i++) {
+                for (let j = i + 1; j < freeTiles.length; j++) {
+                    if (isMatch(freeTiles[i], freeTiles[j])) {
+                        pairs++;
+                    }
+                }
+            }
+            pairsCountEl.textContent = pairs;
+
+            if (pairs === 0 && tiles.some(t => !t.removed)) {
+                GameInterface.showMessage('No Moves', 'No more pairs available. Try shuffling!');
+            }
+        }
+
+        function shuffleRemaining() {
+            // Get all remaining tile data
+            let remaining = tiles.filter(t => !t.removed);
+            let data = remaining.map(t => t.data);
+
+            // Shuffle data
+            data.sort(() => Math.random() - 0.5);
+
+            // Reassign data to positions
+            remaining.forEach((t, i) => {
+                t.data = data[i];
+            });
+
+            selectedTile = null;
+            renderBoard();
+            updatePairsCount();
+        }
+
+        function showHint() {
+            let freeTiles = tiles.filter(t => !t.removed && isFree(t));
+            for (let i = 0; i < freeTiles.length; i++) {
+                for (let j = i + 1; j < freeTiles.length; j++) {
+                    if (isMatch(freeTiles[i], freeTiles[j])) {
+                        freeTiles[i].el.classList.add('selected');
+                        freeTiles[j].el.classList.add('selected');
+                        setTimeout(() => {
+                            if (freeTiles[i].el) freeTiles[i].el.classList.remove('selected');
+                            if (freeTiles[j].el) freeTiles[j].el.classList.remove('selected');
+                        }, 1000);
+                        return;
+                    }
+                }
+            }
+        }
+
+        function checkWin() {
+            if (tiles.every(t => t.removed)) {
+                GameInterface.showGameOver({
+                    text: 'Mahjongg Master!',
+                    score: 'Cleared',
+                    level: 'Zen'
+                });
+            }
+        }
+
+        startNewGame();
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Colored Lines - DATOV</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: rgba(21, 23, 37, 0.5);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            align-items: center;
+        }
+
+        .score-box {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .next-balls {
+            display: flex;
+            gap: 0.5rem;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.5rem;
+            border-radius: var(--radius-sm);
+        }
+
+        .mini-ball {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            box-shadow: 0 0 5px currentColor;
+        }
+
+        .grid-board {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 2px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px;
+            border-radius: var(--radius-sm);
+            width: 100%;
+            aspect-ratio: 1;
+        }
+
+        .cell {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ball {
+            width: 80%;
+            height: 80%;
+            border-radius: 50%;
+            box-shadow: inset -5px -5px 10px rgba(0, 0, 0, 0.5), 0 0 10px currentColor;
+            transition: transform 0.2s;
+            z-index: 2;
+        }
+
+        .ball.selected {
+            animation: bounce 0.5s infinite alternate;
+        }
+
+        @keyframes bounce {
+            from {
+                transform: translateY(0);
+            }
+
+            to {
+                transform: translateY(-5px);
+            }
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+        }
+
+        /* Mobile */
+        @media (max-width: 500px) {
+            .game-container {
+                padding: 0.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="container flex flex-between">
+            <a href="index.html" class="logo">DATOV</a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html#games">Back to Games</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="section" style="padding-top: 8rem;">
+        <div class="container">
+            <div class="game-container">
+                <div class="header-bar">
+                    <div class="score-box" id="score">0</div>
+                    <div class="next-balls" id="nextBalls">
+                        <!-- Next colors -->
+                    </div>
+                </div>
+
+                <div class="grid-board" id="grid">
+                    <!-- 9x9 Grid -->
+                </div>
+
+                <div class="controls">
+                    <button class="btn btn-primary" id="undoBtn" disabled>Undo</button>
+                    <button class="btn btn-primary" id="newGameBtn">New Game</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="game-interface.js"></script>
+    <script>
+        const GRID_SIZE = 9;
+        const COLORS = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#00ffff', '#ff00ff', '#ffffff'];
+
+        let grid = []; // 9x9 array, null or color string
+        let score = 0;
+        let nextColors = [];
+        let selectedCell = null; // {x, y}
+        let isProcessing = false;
+        let history = []; // For undo
+
+        const gridEl = document.getElementById('grid');
+        const scoreEl = document.getElementById('score');
+        const nextBallsEl = document.getElementById('nextBalls');
+        const undoBtn = document.getElementById('undoBtn');
+        const newGameBtn = document.getElementById('newGameBtn');
+
+        newGameBtn.addEventListener('click', initGame);
+        undoBtn.addEventListener('click', undoMove);
+
+        // Init Interface
+        GameInterface.init({
+            name: 'Colored Lines',
+            description: 'Classic Line 98 puzzle. Align 5 balls of the same color.',
+            howToPlay: [
+                'Select a ball to move.',
+                'Click an empty cell to move it there.',
+                'You need a clear path to move.',
+                'Align 5 or more balls of the same color to clear them.',
+                'Every turn without a clear adds 3 new balls.'
+            ]
+        });
+
+        function initGame() {
+            grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(null));
+            score = 0;
+            history = [];
+            updateScore();
+            generateNextColors();
+
+            // Initial balls
+            addRandomBalls(5);
+
+            renderGrid();
+            renderNextColors();
+            undoBtn.disabled = true;
+        }
+
+        function generateNextColors() {
+            nextColors = [];
+            for (let i = 0; i < 3; i++) {
+                nextColors.push(COLORS[Math.floor(Math.random() * COLORS.length)]);
+            }
+        }
+
+        function renderNextColors() {
+            nextBallsEl.innerHTML = '';
+            nextColors.forEach(color => {
+                const ball = document.createElement('div');
+                ball.className = 'mini-ball';
+                ball.style.backgroundColor = color;
+                ball.style.color = color; // For shadow
+                nextBallsEl.appendChild(ball);
+            });
+        }
+
+        function renderGrid() {
+            gridEl.innerHTML = '';
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.x = x;
+                    cell.dataset.y = y;
+                    cell.onclick = () => handleCellClick(x, y);
+
+                    if (grid[y][x]) {
+                        const ball = document.createElement('div');
+                        ball.className = 'ball';
+                        ball.style.backgroundColor = grid[y][x];
+                        ball.style.color = grid[y][x];
+
+                        if (selectedCell && selectedCell.x === x && selectedCell.y === y) {
+                            ball.classList.add('selected');
+                        }
+                        cell.appendChild(ball);
+                    }
+                    gridEl.appendChild(cell);
+                }
+            }
+        }
+
+        function handleCellClick(x, y) {
+            if (isProcessing) return;
+
+            if (grid[y][x]) {
+                // Select ball
+                selectedCell = { x, y };
+                renderGrid();
+            } else if (selectedCell) {
+                // Move to empty cell
+                if (canMove(selectedCell.x, selectedCell.y, x, y)) {
+                    saveState();
+                    moveBall(selectedCell.x, selectedCell.y, x, y);
+                    selectedCell = null;
+                }
+            }
+        }
+
+        function canMove(fromX, fromY, toX, toY) {
+            // BFS pathfinding
+            const queue = [{ x: fromX, y: fromY }];
+            const visited = new Set();
+            visited.add(`${fromX},${fromY}`);
+
+            while (queue.length > 0) {
+                const curr = queue.shift();
+                if (curr.x === toX && curr.y === toY) return true;
+
+                const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+                for (let d of dirs) {
+                    const nx = curr.x + d[0];
+                    const ny = curr.y + d[1];
+
+                    if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE &&
+                        !grid[ny][nx] && !visited.has(`${nx},${ny}`)) {
+                        visited.add(`${nx},${ny}`);
+                        queue.push({ x: nx, y: ny });
+                    }
+                }
+            }
+            return false;
+        }
+
+        function moveBall(fromX, fromY, toX, toY) {
+            grid[toY][toX] = grid[fromY][fromX];
+            grid[fromY][fromX] = null;
+            renderGrid();
+
+            // Check lines after move
+            const cleared = checkLines();
+
+            if (!cleared) {
+                // Add new balls if no line cleared
+                addRandomBalls(3);
+                generateNextColors();
+                renderNextColors();
+                checkLines(); // Check again after adding new balls
+            }
+
+            renderGrid();
+        }
+
+        function addRandomBalls(count) {
+            const emptyCells = [];
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    if (!grid[y][x]) emptyCells.push({ x, y });
+                }
+            }
+
+            for (let i = 0; i < count && emptyCells.length > 0; i++) {
+                const idx = Math.floor(Math.random() * emptyCells.length);
+                const cell = emptyCells.splice(idx, 1)[0];
+                const color = (i < nextColors.length) ? nextColors[i] : COLORS[Math.floor(Math.random() * COLORS.length)];
+                grid[cell.y][cell.x] = color;
+            }
+
+            if (emptyCells.length === 0) {
+                GameInterface.showGameOver({
+                    score: score,
+                    text: 'Board Full!'
+                });
+            }
+        }
+
+        function checkLines() {
+            let toRemove = new Set();
+
+            // Horizontal
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x <= GRID_SIZE - 5; x++) {
+                    const c = grid[y][x];
+                    if (!c) continue;
+                    if (grid[y][x + 1] === c && grid[y][x + 2] === c && grid[y][x + 3] === c && grid[y][x + 4] === c) {
+                        for (let k = 0; k < 5; k++) toRemove.add(`${x + k},${y}`);
+                        // Check extended
+                        let k = 5;
+                        while (x + k < GRID_SIZE && grid[y][x + k] === c) {
+                            toRemove.add(`${x + k},${y}`);
+                            k++;
+                        }
+                    }
+                }
+            }
+
+            // Vertical
+            for (let x = 0; x < GRID_SIZE; x++) {
+                for (let y = 0; y <= GRID_SIZE - 5; y++) {
+                    const c = grid[y][x];
+                    if (!c) continue;
+                    if (grid[y + 1][x] === c && grid[y + 2][x] === c && grid[y + 3][x] === c && grid[y + 4][x] === c) {
+                        for (let k = 0; k < 5; k++) toRemove.add(`${x},${y + k}`);
+                        let k = 5;
+                        while (y + k < GRID_SIZE && grid[y + k][x] === c) {
+                            toRemove.add(`${x},${y + k}`);
+                            k++;
+                        }
+                    }
+                }
+            }
+
+            // Diagonal \
+            for (let y = 0; y <= GRID_SIZE - 5; y++) {
+                for (let x = 0; x <= GRID_SIZE - 5; x++) {
+                    const c = grid[y][x];
+                    if (!c) continue;
+                    if (grid[y + 1][x + 1] === c && grid[y + 2][x + 2] === c && grid[y + 3][x + 3] === c && grid[y + 4][x + 4] === c) {
+                        for (let k = 0; k < 5; k++) toRemove.add(`${x + k},${y + k}`);
+                        let k = 5;
+                        while (y + k < GRID_SIZE && x + k < GRID_SIZE && grid[y + k][x + k] === c) {
+                            toRemove.add(`${x + k},${y + k}`);
+                            k++;
+                        }
+                    }
+                }
+            }
+
+            // Diagonal /
+            for (let y = 0; y <= GRID_SIZE - 5; y++) {
+                for (let x = 4; x < GRID_SIZE; x++) {
+                    const c = grid[y][x];
+                    if (!c) continue;
+                    if (grid[y + 1][x - 1] === c && grid[y + 2][x - 2] === c && grid[y + 3][x - 3] === c && grid[y + 4][x - 4] === c) {
+                        for (let k = 0; k < 5; k++) toRemove.add(`${x - k},${y + k}`);
+                        let k = 5;
+                        while (y + k < GRID_SIZE && x - k >= 0 && grid[y + k][x - k] === c) {
+                            toRemove.add(`${x - k},${y + k}`);
+                            k++;
+                        }
+                    }
+                }
+            }
+
+            if (toRemove.size > 0) {
+                toRemove.forEach(key => {
+                    const [x, y] = key.split(',').map(Number);
+                    grid[y][x] = null;
+                });
+                score += toRemove.size * 2; // Simple scoring
+                updateScore();
+                return true;
+            }
+            return false;
+        }
+
+        function updateScore() {
+            scoreEl.textContent = score;
+        }
+
+        function saveState() {
+            history.push({
+                grid: JSON.parse(JSON.stringify(grid)),
+                score: score,
+                nextColors: [...nextColors]
+            });
+            if (history.length > 5) history.shift(); // Keep last 5
+            undoBtn.disabled = false;
+        }
+
+        function undoMove() {
+            if (history.length === 0) return;
+            const state = history.pop();
+            grid = state.grid;
+            score = state.score;
+            nextColors = state.nextColors;
+
+            updateScore();
+            renderNextColors();
+            renderGrid();
+
+            if (history.length === 0) undoBtn.disabled = true;
+        }
+
+        initGame();
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reversi - DATOV</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: rgba(21, 23, 37, 0.5);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .score-board {
+            display: flex;
+            gap: 2rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .score-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .disc-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+        }
+
+        .disc-black {
+            background: #000;
+            border: 1px solid #555;
+        }
+
+        .disc-white {
+            background: #fff;
+        }
+
+        .reversi-board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 2px;
+            background: #006400;
+            padding: 5px;
+            border-radius: var(--radius-sm);
+            width: 100%;
+            max-width: 450px;
+            aspect-ratio: 1;
+        }
+
+        .cell {
+            background: rgba(0, 100, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .cell:hover {
+            background: rgba(0, 120, 0, 0.9);
+        }
+
+        .disc {
+            width: 80%;
+            height: 80%;
+            border-radius: 50%;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s;
+        }
+
+        .disc.black {
+            background: #000;
+            background: radial-gradient(circle at 30% 30%, #444, #000);
+        }
+
+        .disc.white {
+            background: #fff;
+            background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+        }
+
+        .valid-move {
+            width: 20%;
+            height: 20%;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+        }
+
+        .turn-indicator {
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="container flex flex-between">
+            <a href="index.html" class="logo">DATOV</a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html#games">Back to Games</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="section" style="padding-top: 8rem;">
+        <div class="container">
+            <div class="game-container">
+                <h2>Reversi</h2>
+
+                <div class="score-board">
+                    <div class="score-item">
+                        <div class="disc-icon disc-black"></div>
+                        <span id="scoreBlack">2</span>
+                    </div>
+                    <div class="score-item">
+                        <div class="disc-icon disc-white"></div>
+                        <span id="scoreWhite">2</span>
+                    </div>
+                </div>
+
+                <div class="turn-indicator" id="turnIndicator">Black's Turn</div>
+
+                <div class="reversi-board" id="board"></div>
+
+                <div class="controls">
+                    <button id="newGameBtn" class="btn btn-primary">New Game</button>
+                    <button id="passBtn" class="btn btn-outline" style="display: none;">Pass</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="game-interface.js"></script>
+    <script>
+        const boardEl = document.getElementById('board');
+        const scoreBlackEl = document.getElementById('scoreBlack');
+        const scoreWhiteEl = document.getElementById('scoreWhite');
+        const turnIndicatorEl = document.getElementById('turnIndicator');
+        const passBtn = document.getElementById('passBtn');
+
+        const SIZE = 8;
+        let board = [];
+        let currentPlayer = 1; // 1 = Black, 2 = White
+        let gameOver = false;
+
+        // Initialize Game Interface
+        GameInterface.init({
+            name: 'Reversi',
+            description: 'Classic strategy board game. Capture opponent pieces by flanking them.',
+            url: 'game-reversi.html',
+            howToPlay: [
+                'Black moves first.',
+                'Place a piece to flank one or more opponent pieces.',
+                'Flanked pieces flip to your color.',
+                'If you cannot move, you must pass.',
+                'The player with the most pieces at the end wins.'
+            ]
+        });
+
+        document.getElementById('newGameBtn').addEventListener('click', initGame);
+        passBtn.addEventListener('click', () => {
+            switchTurn();
+        });
+
+        function initGame() {
+            board = Array(SIZE).fill().map(() => Array(SIZE).fill(0));
+            // Initial setup
+            board[3][3] = 2;
+            board[3][4] = 1;
+            board[4][3] = 1;
+            board[4][4] = 2;
+
+            currentPlayer = 1;
+            gameOver = false;
+            passBtn.style.display = 'none';
+            renderBoard();
+            updateScore();
+        }
+
+        function renderBoard() {
+            boardEl.innerHTML = '';
+            const validMoves = getValidMoves(currentPlayer);
+
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+
+                    if (board[r][c] === 1) {
+                        const disc = document.createElement('div');
+                        disc.className = 'disc black';
+                        cell.appendChild(disc);
+                    } else if (board[r][c] === 2) {
+                        const disc = document.createElement('div');
+                        disc.className = 'disc white';
+                        cell.appendChild(disc);
+                    } else {
+                        // Check if valid move
+                        const isValid = validMoves.some(m => m.r === r && m.c === c);
+                        if (isValid && currentPlayer === 1) { // Only show hints for human (Black)
+                            const hint = document.createElement('div');
+                            hint.className = 'valid-move';
+                            cell.appendChild(hint);
+                            cell.addEventListener('click', () => makeMove(r, c));
+                        }
+                    }
+                    boardEl.appendChild(cell);
+                }
+            }
+
+            turnIndicatorEl.textContent = currentPlayer === 1 ? "Black's Turn (You)" : "White's Turn (AI)";
+
+            if (validMoves.length === 0 && !gameOver) {
+                if (getValidMoves(3 - currentPlayer).length === 0) {
+                    endGame();
+                } else {
+                    passBtn.style.display = 'block';
+                    if (currentPlayer === 2) {
+                        setTimeout(switchTurn, 1000); // AI passes automatically
+                    }
+                }
+            } else {
+                passBtn.style.display = 'none';
+            }
+        }
+
+        function getValidMoves(player) {
+            const moves = [];
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (isValidMove(r, c, player)) {
+                        moves.push({ r, c });
+                    }
+                }
+            }
+            return moves;
+        }
+
+        function isValidMove(r, c, player) {
+            if (board[r][c] !== 0) return false;
+
+            const opponent = 3 - player;
+            const dirs = [
+                [-1, -1], [-1, 0], [-1, 1],
+                [0, -1], [0, 1],
+                [1, -1], [1, 0], [1, 1]
+            ];
+
+            for (let [dr, dc] of dirs) {
+                let nr = r + dr;
+                let nc = c + dc;
+                let foundOpponent = false;
+
+                while (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && board[nr][nc] === opponent) {
+                    nr += dr;
+                    nc += dc;
+                    foundOpponent = true;
+                }
+
+                if (foundOpponent && nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && board[nr][nc] === player) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function makeMove(r, c) {
+            if (gameOver) return;
+
+            board[r][c] = currentPlayer;
+            flipDiscs(r, c, currentPlayer);
+            updateScore();
+            switchTurn();
+        }
+
+        function flipDiscs(r, c, player) {
+            const opponent = 3 - player;
+            const dirs = [
+                [-1, -1], [-1, 0], [-1, 1],
+                [0, -1], [0, 1],
+                [1, -1], [1, 0], [1, 1]
+            ];
+
+            for (let [dr, dc] of dirs) {
+                let nr = r + dr;
+                let nc = c + dc;
+                let discsToFlip = [];
+
+                while (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && board[nr][nc] === opponent) {
+                    discsToFlip.push({ r: nr, c: nc });
+                    nr += dr;
+                    nc += dc;
+                }
+
+                if (discsToFlip.length > 0 && nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && board[nr][nc] === player) {
+                    for (let disc of discsToFlip) {
+                        board[disc.r][disc.c] = player;
+                    }
+                }
+            }
+        }
+
+        function switchTurn() {
+            currentPlayer = 3 - currentPlayer;
+            renderBoard();
+
+            if (currentPlayer === 2 && !gameOver) {
+                setTimeout(aiMove, 1000);
+            }
+        }
+
+        function aiMove() {
+            const validMoves = getValidMoves(2);
+            if (validMoves.length > 0) {
+                // Simple AI: Random move (can be improved to greedy)
+                // Greedy: Pick move that flips most discs?
+                // For MVP, random is fine, or maybe prioritize corners?
+
+                // Let's do simple greedy (max flips)
+                let bestMove = validMoves[0];
+                let maxFlips = -1;
+
+                for (let move of validMoves) {
+                    // Simulate to count flips (simplified, just random for now to keep it fast)
+                    // Actually, let's just pick random for variety
+                }
+                const move = validMoves[Math.floor(Math.random() * validMoves.length)];
+                makeMove(move.r, move.c);
+            } else {
+                // AI Pass
+                switchTurn();
+            }
+        }
+
+        function updateScore() {
+            let black = 0, white = 0;
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (board[r][c] === 1) black++;
+                    else if (board[r][c] === 2) white++;
+                }
+            }
+            scoreBlackEl.textContent = black;
+            scoreWhiteEl.textContent = white;
+        }
+
+        function endGame() {
+            gameOver = true;
+            let black = parseInt(scoreBlackEl.textContent);
+            let white = parseInt(scoreWhiteEl.textContent);
+            let msg = black > white ? "You Win!" : black < white ? "AI Wins!" : "Draw!";
+
+            GameInterface.showGameOver({
+                text: msg,
+                score: `Black: ${black} - White: ${white}`
+            });
+        }
+
+        initGame();
+
+    </script>
+</body>
+
+</html>

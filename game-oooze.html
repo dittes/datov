@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oooze - DATOV</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: rgba(21, 23, 37, 0.5);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .canvas-container {
+            position: relative;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        canvas {
+            background: #000;
+            display: block;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .level-info {
+            font-size: 1.2rem;
+            color: var(--primary);
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="container flex flex-between">
+            <a href="index.html" class="logo">DATOV</a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html#games">Back to Games</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="section" style="padding-top: 8rem;">
+        <div class="container">
+            <div class="game-container">
+                <div class="level-info" id="levelInfo">Level 1</div>
+
+                <div class="canvas-container">
+                    <canvas id="gameCanvas" width="400" height="400"></canvas>
+                </div>
+
+                <div class="controls">
+                    <button id="resetBtn" class="btn btn-primary">Reset Level</button>
+                </div>
+
+                <p style="font-size: 0.9rem; color: var(--text-muted);">Swipe or use Arrow Keys to slide.</p>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const TILE_SIZE = 40;
+        const COLS = 10;
+        const ROWS = 10;
+
+        // Game objects
+        let player = { x: 1, y: 1, vx: 0, vy: 0, color: '#00f3ff' };
+        let goal = { x: 8, y: 8 };
+        let walls = [];
+        let particles = [];
+        let isMoving = false;
+        let currentLevel = 1;
+
+        // Level definitions (0: floor, 1: wall, 2: start, 3: goal)
+        const levels = [
+            [
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 2, 0, 0, 0, 0, 0, 1, 0, 1],
+                [1, 0, 1, 1, 0, 1, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 1, 0, 1, 0, 1],
+                [1, 1, 1, 0, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 1, 1, 1, 0, 0, 1],
+                [1, 0, 1, 0, 0, 0, 0, 0, 0, 1],
+                [1, 0, 1, 1, 0, 1, 1, 1, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 3, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+            ],
+            [
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 2, 0, 0, 1, 0, 0, 0, 0, 1],
+                [1, 0, 1, 0, 1, 0, 1, 1, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 1, 0, 1, 1, 1, 0, 1, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+                [1, 0, 1, 1, 1, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 1, 0, 1, 1, 0, 1],
+                [1, 0, 1, 0, 0, 0, 0, 0, 3, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+            ]
+        ];
+
+        function loadLevel(levelIdx) {
+            const levelData = levels[levelIdx % levels.length];
+            walls = [];
+
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const type = levelData[y][x];
+                    if (type === 1) walls.push({ x, y });
+                    if (type === 2) { player.x = x; player.y = y; }
+                    if (type === 3) { goal.x = x; goal.y = y; }
+                }
+            }
+            player.vx = 0;
+            player.vy = 0;
+            isMoving = false;
+            particles = [];
+            document.getElementById('levelInfo').textContent = `Level ${currentLevel}`;
+        }
+
+        function update() {
+            if (isMoving) {
+                // Add trail particles
+                if (Math.random() > 0.5) {
+                    particles.push({
+                        x: player.x * TILE_SIZE + TILE_SIZE / 2,
+                        y: player.y * TILE_SIZE + TILE_SIZE / 2,
+                        life: 1.0,
+                        dx: (Math.random() - 0.5) * 2,
+                        dy: (Math.random() - 0.5) * 2
+                    });
+                }
+
+                // Move logic (simplified grid movement)
+                // We move in small steps to check collision
+                const nextX = player.x + player.vx * 0.2; // Speed factor
+                const nextY = player.y + player.vy * 0.2;
+
+                // Check collision with walls
+                // Simple integer check
+                const checkX = Math.round(nextX);
+                const checkY = Math.round(nextY);
+
+                // Check if the target cell is a wall
+                // We need to look ahead based on direction
+                let hitWall = false;
+
+                // We are moving in grid units, but animating smoothly?
+                // For "sliding" puzzle, usually it's instant or smooth slide to next stop.
+                // Let's do smooth slide.
+
+                // Check if next integer cell is wall
+                const targetX = Math.round(player.x + player.vx);
+                const targetY = Math.round(player.y + player.vy);
+
+                if (isWall(targetX, targetY)) {
+                    // Stop
+                    player.x = Math.round(player.x);
+                    player.y = Math.round(player.y);
+                    player.vx = 0;
+                    player.vy = 0;
+                    isMoving = false;
+
+                    // Shake effect
+                    // ...
+                } else {
+                    player.x += player.vx * 0.2;
+                    player.y += player.vy * 0.2;
+
+                    // Snap to grid if close
+                    if (Math.abs(player.x - Math.round(player.x)) < 0.05 && Math.abs(player.y - Math.round(player.y)) < 0.05) {
+                        player.x = Math.round(player.x);
+                        player.y = Math.round(player.y);
+                    }
+                }
+            }
+
+            // Check Goal
+            if (!isMoving && Math.round(player.x) === goal.x && Math.round(player.y) === goal.y) {
+                currentLevel++;
+                loadLevel(currentLevel - 1);
+            }
+
+            // Update particles
+            particles.forEach((p, i) => {
+                p.life -= 0.05;
+                p.x += p.dx;
+                p.y += p.dy;
+                if (p.life <= 0) particles.splice(i, 1);
+            });
+        }
+
+        function isWall(x, y) {
+            return walls.some(w => w.x === x && w.y === y);
+        }
+
+        function draw() {
+            // Clear
+            ctx.fillStyle = '#0a0b14';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Grid (faint)
+            ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+            for (let i = 0; i <= COLS; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * TILE_SIZE, 0);
+                ctx.lineTo(i * TILE_SIZE, canvas.height);
+                ctx.stroke();
+            }
+            for (let i = 0; i <= ROWS; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, i * TILE_SIZE);
+                ctx.lineTo(canvas.width, i * TILE_SIZE);
+                ctx.stroke();
+            }
+
+            // Draw Walls
+            ctx.fillStyle = '#1e2136';
+            walls.forEach(w => {
+                ctx.fillRect(w.x * TILE_SIZE, w.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                // Bevel
+                ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                ctx.strokeRect(w.x * TILE_SIZE, w.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            });
+
+            // Draw Goal
+            ctx.fillStyle = '#ff00ff';
+            ctx.beginPath();
+            ctx.arc(goal.x * TILE_SIZE + TILE_SIZE / 2, goal.y * TILE_SIZE + TILE_SIZE / 2, 10, 0, Math.PI * 2);
+            ctx.fill();
+            // Glow
+            ctx.shadowColor = '#ff00ff';
+            ctx.shadowBlur = 15;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Draw Particles
+            particles.forEach(p => {
+                ctx.fillStyle = `rgba(0, 243, 255, ${p.life})`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Draw Player
+            ctx.fillStyle = player.color;
+            ctx.shadowColor = player.color;
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.arc(player.x * TILE_SIZE + TILE_SIZE / 2, player.y * TILE_SIZE + TILE_SIZE / 2, 12, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        // Input
+        document.addEventListener('keydown', e => {
+            if (isMoving) return;
+            switch (e.key) {
+                case 'ArrowUp': player.vy = -1; isMoving = true; break;
+                case 'ArrowDown': player.vy = 1; isMoving = true; break;
+                case 'ArrowLeft': player.vx = -1; isMoving = true; break;
+                case 'ArrowRight': player.vx = 1; isMoving = true; break;
+            }
+        });
+
+        // Touch
+        let touchX, touchY;
+        canvas.addEventListener('touchstart', e => {
+            touchX = e.touches[0].clientX;
+            touchY = e.touches[0].clientY;
+            e.preventDefault();
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', e => {
+            if (isMoving) return;
+            const dx = e.changedTouches[0].clientX - touchX;
+            const dy = e.changedTouches[0].clientY - touchY;
+
+            if (Math.abs(dx) > Math.abs(dy)) {
+                if (Math.abs(dx) > 30) {
+                    player.vx = dx > 0 ? 1 : -1;
+                    isMoving = true;
+                }
+            } else {
+                if (Math.abs(dy) > 30) {
+                    player.vy = dy > 0 ? 1 : -1;
+                    isMoving = true;
+                }
+            }
+            e.preventDefault();
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => loadLevel(currentLevel - 1));
+
+        loadLevel(0);
+        loop();
+
+    </script>
+</body>
+
+</html>

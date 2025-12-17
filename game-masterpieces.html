@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masterpieces - DATOV</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: rgba(21, 23, 37, 0.5);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .puzzle-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            aspect-ratio: 1;
+            background: #000;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+        }
+
+        .puzzle-grid {
+            display: grid;
+            width: 100%;
+            height: 100%;
+            gap: 1px;
+        }
+
+        .tile {
+            background-size: 400px 400px;
+            /* Matches container max-width */
+            cursor: pointer;
+            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: rgba(255, 255, 255, 0.5);
+            text-shadow: 0 0 5px #000;
+        }
+
+        .tile.empty {
+            background: rgba(0, 0, 0, 0.5);
+            cursor: default;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .preview-img {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: var(--radius-sm);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="container flex flex-between">
+            <a href="index.html" class="logo">DATOV</a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html#games">Back to Games</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="section" style="padding-top: 8rem;">
+        <div class="container">
+            <div class="game-container">
+                <div class="flex flex-between" style="width: 100%; align-items: center;">
+                    <h2>Masterpieces</h2>
+                    <img id="preview" class="preview-img" src="" alt="Preview">
+                </div>
+
+                <div class="puzzle-container">
+                    <div class="puzzle-grid" id="grid"></div>
+                </div>
+
+                <div class="controls">
+                    <select id="difficultySelect" class="btn" style="background: rgba(255,255,255,0.1); color: #fff;">
+                        <option value="3">Easy (3x3)</option>
+                        <option value="4" selected>Medium (4x4)</option>
+                        <option value="5">Hard (5x5)</option>
+                    </select>
+                    <button id="newGameBtn" class="btn btn-primary">New Image</button>
+                    <button id="shuffleBtn" class="btn btn-primary">Shuffle</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="game-interface.js"></script>
+    <script>
+        const IMAGES = [
+            'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&q=80&w=800', // Art
+            'https://images.unsplash.com/photo-1549490349-8643362247b5?auto=format&fit=crop&q=80&w=800', // Abstract
+            'https://images.unsplash.com/photo-1515405295579-ba7b45403062?auto=format&fit=crop&q=80&w=800', // Blue
+            'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&q=80&w=800'  // Neon
+        ];
+
+        let gridSize = 4;
+        let tiles = []; // {x, y, correctX, correctY}
+        let emptyTile = { x: 0, y: 0 };
+        let currentImage = '';
+
+        const gridEl = document.getElementById('grid');
+        const previewEl = document.getElementById('preview');
+        const difficultySelect = document.getElementById('difficultySelect');
+
+        // Initialize Game Interface
+        GameInterface.init({
+            name: 'Masterpieces',
+            description: 'A sliding tile puzzle game. Reassemble the beautiful images by sliding the tiles into place.',
+            url: 'game-masterpieces.html',
+            howToPlay: [
+                'Click a tile adjacent to the empty space to slide it.',
+                'Arrange the tiles to match the preview image.',
+                'Select difficulty to change the grid size.',
+                'Use "New Image" to try a different puzzle.'
+            ]
+        });
+
+        document.getElementById('newGameBtn').addEventListener('click', () => initGame(true));
+        document.getElementById('shuffleBtn').addEventListener('click', shuffle);
+        difficultySelect.addEventListener('change', (e) => {
+            gridSize = parseInt(e.target.value);
+            initGame(false);
+        });
+
+        function initGame(newImg = false) {
+            if (newImg || !currentImage) {
+                currentImage = IMAGES[Math.floor(Math.random() * IMAGES.length)];
+            }
+            previewEl.src = currentImage;
+
+            // Setup grid CSS
+            gridEl.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+            gridEl.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
+
+            // Create tiles
+            tiles = [];
+            for (let y = 0; y < gridSize; y++) {
+                for (let x = 0; x < gridSize; x++) {
+                    tiles.push({
+                        x: x,
+                        y: y,
+                        correctX: x,
+                        correctY: y,
+                        isEmpty: (x === gridSize - 1 && y === gridSize - 1)
+                    });
+                }
+            }
+            emptyTile = { x: gridSize - 1, y: gridSize - 1 };
+
+            renderGrid();
+        }
+
+        function renderGrid() {
+            gridEl.innerHTML = '';
+            // Sort tiles by current position to render in order
+            // Actually we render by slot index 0..N
+            // We need to find which tile is at (0,0), (1,0) etc.
+
+            for (let y = 0; y < gridSize; y++) {
+                for (let x = 0; x < gridSize; x++) {
+                    const tile = tiles.find(t => t.x === x && t.y === y);
+                    const el = document.createElement('div');
+                    el.className = 'tile';
+
+                    if (tile.isEmpty) {
+                        el.classList.add('empty');
+                    } else {
+                        el.style.backgroundImage = `url(${currentImage})`;
+                        // Calculate background position
+                        // Percentage: x / (size-1) * 100%
+                        const bgX = (tile.correctX / (gridSize - 1)) * 100;
+                        const bgY = (tile.correctY / (gridSize - 1)) * 100;
+                        el.style.backgroundPosition = `${bgX}% ${bgY}%`;
+
+                        // Adjust background size based on grid size?
+                        // The container is 400px.
+                        // If 4x4, each tile is 100px.
+                        // The image should cover the whole 400px.
+                        // background-size: 100% 100% (of container)
+                        // But since tile is smaller, we need to scale bg size relative to tile.
+                        // bg size = (gridSize * 100)%
+                        el.style.backgroundSize = `${gridSize * 100}%`;
+                    }
+
+                    el.addEventListener('click', () => moveTile(tile));
+                    gridEl.appendChild(el);
+                }
+            }
+        }
+
+        function moveTile(tile) {
+            if (tile.isEmpty) return;
+
+            const dx = Math.abs(tile.x - emptyTile.x);
+            const dy = Math.abs(tile.y - emptyTile.y);
+
+            if (dx + dy === 1) {
+                // Swap
+                const tempX = tile.x;
+                const tempY = tile.y;
+                tile.x = emptyTile.x;
+                tile.y = emptyTile.y;
+
+                // Find empty tile obj
+                const emptyObj = tiles.find(t => t.isEmpty);
+                emptyObj.x = tempX;
+                emptyObj.y = tempY;
+                emptyTile = { x: tempX, y: tempY };
+
+                renderGrid();
+                checkWin();
+            }
+        }
+
+        function shuffle() {
+            // Perform random valid moves
+            for (let i = 0; i < 100; i++) {
+                const neighbors = tiles.filter(t => {
+                    const dx = Math.abs(t.x - emptyTile.x);
+                    const dy = Math.abs(t.y - emptyTile.y);
+                    return dx + dy === 1;
+                });
+                const randomNeighbor = neighbors[Math.floor(Math.random() * neighbors.length)];
+
+                // Swap logic (duplicated for speed)
+                const tempX = randomNeighbor.x;
+                const tempY = randomNeighbor.y;
+                randomNeighbor.x = emptyTile.x;
+                randomNeighbor.y = emptyTile.y;
+
+                const emptyObj = tiles.find(t => t.isEmpty);
+                emptyObj.x = tempX;
+                emptyObj.y = tempY;
+                emptyTile = { x: tempX, y: tempY };
+            }
+            renderGrid();
+        }
+
+        function checkWin() {
+            const win = tiles.every(t => t.x === t.correctX && t.y === t.correctY);
+            if (win) {
+                GameInterface.showGameOver({
+                    text: 'Masterpiece Completed!',
+                    score: 'Victory'
+                });
+            }
+        }
+
+        initGame(true);
+
+    </script>
+</body>
+
+</html>

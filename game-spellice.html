@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spellice - DATOV</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            padding: 2rem;
+            background: rgba(21, 23, 37, 0.5);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .speaker-btn {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+            animation: pulse 2s infinite;
+        }
+
+        .speaker-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.6);
+        }
+
+        .speaker-btn:active {
+            transform: scale(0.95);
+        }
+
+        .input-area {
+            width: 100%;
+            display: flex;
+            gap: 1rem;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 1rem;
+            font-size: 1.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #fff;
+            text-align: center;
+        }
+
+        .feedback {
+            height: 2rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .feedback.correct {
+            color: #4caf50;
+        }
+
+        .feedback.wrong {
+            color: #f44336;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(0, 243, 255, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 20px rgba(0, 243, 255, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(0, 243, 255, 0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="container flex flex-between">
+            <a href="index.html" class="logo">DATOV</a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html#games">Back to Games</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="section" style="padding-top: 8rem;">
+        <div class="container">
+            <div class="game-container">
+                <div class="flex flex-between" style="width: 100%;">
+                    <div>Score: <span id="score">0</span></div>
+                    <div>Round: <span id="round">1</span>/10</div>
+                </div>
+
+                <div class="speaker-btn" id="speakBtn">
+                    <i class="fas fa-volume-up"></i>
+                </div>
+
+                <div id="feedback" class="feedback"></div>
+
+                <div class="input-area">
+                    <input type="text" id="spellInput" placeholder="Type what you hear..." autocomplete="off">
+                    <button id="submitBtn" class="btn btn-primary">Check</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="game-interface.js"></script>
+    <script>
+        const speakBtn = document.getElementById('speakBtn');
+        const inputEl = document.getElementById('spellInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const feedbackEl = document.getElementById('feedback');
+        const scoreEl = document.getElementById('score');
+        const roundEl = document.getElementById('round');
+
+        const WORDS = [
+            'ACCOMMODATE', 'CEMETERY', 'CONSCIENCE', 'DEFINITELY', 'EMBARRASS',
+            'EXISTENCE', 'FLUORESCENT', 'FOREIGN', 'GUARANTEE', 'HARASS',
+            'INDEPENDENT', 'INTELLIGENCE', 'JUDGMENT', 'KERNEL', 'LEISURE',
+            'LICENSE', 'MAINTENANCE', 'MILLENNIUM', 'MISCHIEVOUS', 'NECESSARY',
+            'OCCURRENCE', 'PAVILION', 'PERSEVERANCE', 'PRIVILEGE', 'RECEIVE',
+            'RHYTHM', 'SCHEDULE', 'SEPARATE', 'SUPERSEDE', 'VACUUM'
+        ];
+
+        let currentWord = '';
+        let score = 0;
+        let round = 1;
+        const MAX_ROUNDS = 10;
+        let synth = window.speechSynthesis;
+
+        GameInterface.init({
+            name: 'Spellice',
+            description: 'Listen to the word and spell it correctly.',
+            url: 'game-spellice.html',
+            howToPlay: [
+                'Click the speaker icon to hear the word.',
+                'Type the correct spelling.',
+                'Press Check to verify.',
+                'Complete 10 rounds.'
+            ]
+        });
+
+        function initGame() {
+            score = 0;
+            round = 1;
+            updateStats();
+            nextWord();
+        }
+
+        function nextWord() {
+            if (round > MAX_ROUNDS) {
+                endGame();
+                return;
+            }
+            currentWord = WORDS[Math.floor(Math.random() * WORDS.length)];
+            inputEl.value = '';
+            feedbackEl.textContent = '';
+            inputEl.focus();
+            setTimeout(speakWord, 500);
+        }
+
+        function speakWord() {
+            if (synth.speaking) {
+                synth.cancel();
+            }
+            const utterThis = new SpeechSynthesisUtterance(currentWord);
+            utterThis.rate = 0.8; // Slightly slower for clarity
+            synth.speak(utterThis);
+        }
+
+        function checkAnswer() {
+            const guess = inputEl.value.toUpperCase().trim();
+            if (guess === '') return;
+
+            if (guess === currentWord) {
+                score += 100;
+                feedbackEl.textContent = 'Correct!';
+                feedbackEl.className = 'feedback correct';
+                setTimeout(() => {
+                    round++;
+                    updateStats();
+                    nextWord();
+                }, 1000);
+            } else {
+                feedbackEl.textContent = `Incorrect. It was ${currentWord}`;
+                feedbackEl.className = 'feedback wrong';
+                setTimeout(() => {
+                    round++;
+                    updateStats();
+                    nextWord();
+                }, 2000);
+            }
+        }
+
+        function updateStats() {
+            scoreEl.textContent = score;
+            roundEl.textContent = round;
+        }
+
+        function endGame() {
+            GameInterface.showGameOver({
+                text: 'Spelling Bee Complete!',
+                score: score,
+                level: 'Master'
+            });
+        }
+
+        speakBtn.addEventListener('click', speakWord);
+        submitBtn.addEventListener('click', checkAnswer);
+        inputEl.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkAnswer();
+        });
+
+        // Need user interaction to start audio context usually
+        // But speech synthesis works on click
+        initGame();
+
+    </script>
+</body>
+
+</html>

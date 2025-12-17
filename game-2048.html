@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2048 - DATOV</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: rgba(21, 23, 37, 0.5);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            align-items: center;
+        }
+
+        .score-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-sm);
+            text-align: center;
+        }
+
+        .score-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .score-val {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .grid-container {
+            position: relative;
+            background: #1e2136;
+            border-radius: var(--radius-sm);
+            padding: 10px;
+            width: 100%;
+            aspect-ratio: 1;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .grid-cell {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .tile {
+            position: absolute;
+            width: calc(25% - 12.5px);
+            /* (100% - 50px gap total) / 4 ... approx */
+            height: calc(25% - 12.5px);
+            background: var(--primary);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #000;
+            transition: transform 0.1s ease-in-out, opacity 0.1s;
+            z-index: 10;
+        }
+
+        /* Tile Colors */
+        .tile-2 {
+            background: #eee4da;
+            color: #776e65;
+        }
+
+        .tile-4 {
+            background: #ede0c8;
+            color: #776e65;
+        }
+
+        .tile-8 {
+            background: #f2b179;
+            color: #f9f6f2;
+        }
+
+        .tile-16 {
+            background: #f59563;
+            color: #f9f6f2;
+        }
+
+        .tile-32 {
+            background: #f67c5f;
+            color: #f9f6f2;
+        }
+
+        .tile-64 {
+            background: #f65e3b;
+            color: #f9f6f2;
+        }
+
+        .tile-128 {
+            background: #edcf72;
+            color: #f9f6f2;
+            font-size: 1.2rem;
+        }
+
+        .tile-256 {
+            background: #edcc61;
+            color: #f9f6f2;
+            font-size: 1.2rem;
+        }
+
+        .tile-512 {
+            background: #edc850;
+            color: #f9f6f2;
+            font-size: 1.2rem;
+        }
+
+        .tile-1024 {
+            background: #edc53f;
+            color: #f9f6f2;
+            font-size: 1rem;
+        }
+
+        .tile-2048 {
+            background: #edc22e;
+            color: #f9f6f2;
+            font-size: 1rem;
+            box-shadow: 0 0 10px #edc22e;
+        }
+
+        .tile.new {
+            animation: pop 0.2s;
+        }
+
+        .tile.merged {
+            animation: pop 0.2s;
+        }
+
+        @keyframes pop {
+            0% {
+                transform: scale(0);
+            }
+
+            50% {
+                transform: scale(1.2);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            border-radius: var(--radius-sm);
+            z-index: 100;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="container flex flex-between">
+            <a href="index.html" class="logo">DATOV</a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html#games">Back to Games</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="section" style="padding-top: 8rem;">
+        <div class="container">
+            <div class="game-container">
+                <div class="header-bar">
+                    <div>
+                        <h1>2048</h1>
+                        <p style="font-size: 0.8rem;">Join the numbers!</p>
+                    </div>
+                    <div class="flex" style="gap: 1rem;">
+                        <div class="score-box">
+                            <div class="score-label">SCORE</div>
+                            <div class="score-val" id="score">0</div>
+                        </div>
+                        <div class="score-box">
+                            <div class="score-label">BEST</div>
+                            <div class="score-val" id="bestScore">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-container" id="gridContainer">
+                    <!-- Background Grid -->
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+
+                    <!-- Tiles will be absolute positioned here -->
+                    <div id="tileContainer"></div>
+
+
+                </div>
+
+                <div class="controls">
+                    <button class="btn btn-primary" id="newGameBtn">New Game</button>
+                    <button class="btn btn-primary" id="undoBtn" disabled>Undo</button>
+                    <button class="btn btn-primary" id="aiBtn">AI Auto-Play</button>
+                </div>
+
+                <p style="font-size: 0.8rem; text-align: center;">Use Arrow Keys or Swipe to move</p>
+            </div>
+        </div>
+    </section>
+
+    <script src="game-interface.js"></script>
+    <script>
+        const SIZE = 4;
+        let grid = [];
+        let score = 0;
+        let bestScore = localStorage.getItem('2048_best') || 0;
+        let history = [];
+        let aiInterval = null;
+
+        const tileContainer = document.getElementById('tileContainer');
+        const scoreEl = document.getElementById('score');
+        const bestScoreEl = document.getElementById('bestScore');
+        const gameOverOverlay = document.getElementById('gameOverOverlay');
+        const undoBtn = document.getElementById('undoBtn');
+
+        document.getElementById('newGameBtn').addEventListener('click', initGame);
+        document.getElementById('undoBtn').addEventListener('click', undo);
+        document.getElementById('aiBtn').addEventListener('click', toggleAI);
+
+        // Init Interface
+        GameInterface.init({
+            name: '2048',
+            description: 'Join the numbers to reach the 2048 tile!',
+            howToPlay: [
+                'Use Arrow Keys or Swipe to move tiles.',
+                'Tiles with the same number merge into one.',
+                'Add them up to reach 2048!',
+                'The game ends when the board is full and no moves are possible.'
+            ]
+        });
+
+        document.addEventListener('keydown', handleInput);
+
+        // Touch handling
+        let touchStartX = 0;
+        let touchStartY = 0;
+        const gridEl = document.getElementById('gridContainer');
+
+        gridEl.addEventListener('touchstart', e => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            e.preventDefault();
+        }, { passive: false });
+
+        gridEl.addEventListener('touchend', e => {
+            if (!touchStartX || !touchStartY) return;
+
+            const dx = e.changedTouches[0].clientX - touchStartX;
+            const dy = e.changedTouches[0].clientY - touchStartY;
+
+            if (Math.abs(dx) > Math.abs(dy)) {
+                if (Math.abs(dx) > 30) move(dx > 0 ? 1 : 3); // Right : Left
+            } else {
+                if (Math.abs(dy) > 30) move(dy > 0 ? 2 : 0); // Down : Up
+            }
+
+            touchStartX = 0;
+            touchStartY = 0;
+            e.preventDefault();
+        });
+
+        function initGame() {
+            grid = Array(SIZE).fill().map(() => Array(SIZE).fill(0));
+            score = 0;
+            history = [];
+            stopAI();
+            gameOverOverlay.style.display = 'none';
+
+            addRandomTile();
+            addRandomTile();
+
+            updateView();
+        }
+
+        function addRandomTile() {
+            const empty = [];
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (grid[r][c] === 0) empty.push({ r, c });
+                }
+            }
+            if (empty.length > 0) {
+                const { r, c } = empty[Math.floor(Math.random() * empty.length)];
+                grid[r][c] = Math.random() < 0.9 ? 2 : 4;
+                return { r, c }; // Return position for animation if needed
+            }
+            return null;
+        }
+
+        function updateView() {
+            tileContainer.innerHTML = '';
+            scoreEl.textContent = score;
+            bestScoreEl.textContent = bestScore;
+            undoBtn.disabled = history.length === 0;
+
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    const val = grid[r][c];
+                    if (val > 0) {
+                        const tile = document.createElement('div');
+                        tile.className = `tile tile-${val}`;
+                        if (val > 2048) tile.classList.add('tile-super');
+                        tile.textContent = val;
+
+                        // Calculate position
+                        // Grid gap is 10px, cell size is approx (100% - 50px)/4
+                        // We use percentage for responsiveness
+                        const gap = 10; // px
+                        // Actually, easier to use calc in CSS, but for JS positioning we need to be clever or use grid-area
+                        // Let's use simple percentage logic assuming fixed gap ratio or just set style
+
+                        // Using calc for left/top
+                        // left = gap + col * (cell_width + gap)
+                        // cell_width = (100% - 50px) / 4
+                        // This is tricky with pure CSS calc mixing % and px dynamically in JS
+                        // So we'll use a simplified approach: 
+                        // We'll set the grid-area on the tile and let CSS Grid handle it?
+                        // No, we want smooth sliding animations, so absolute position is better.
+
+                        // Let's assume container width is 100%.
+                        // cell width % = 21.25% (approx)
+                        // gap % = 2.5% (approx)
+
+                        const posPct = 25;
+                        const gapOffset = 10;
+
+                        // We need to compute exact pixels or use calc
+                        // top: calc(10px + r * (25% - 2.5px + 10px) ? No.
+                        // Let's try: top: calc(2% + r * 24.5%)
+
+                        // Better:
+                        tile.style.left = `calc(10px + ${c} * ((100% - 50px) / 4 + 10px))`;
+                        tile.style.top = `calc(10px + ${r} * ((100% - 50px) / 4 + 10px))`;
+                        tile.style.width = `calc((100% - 50px) / 4)`;
+                        tile.style.height = `calc((100% - 50px) / 4)`;
+
+                        tileContainer.appendChild(tile);
+                    }
+                }
+            }
+        }
+
+        function handleInput(e) {
+            switch (e.key) {
+                case 'ArrowUp': move(0); break;
+                case 'ArrowRight': move(1); break;
+                case 'ArrowDown': move(2); break;
+                case 'ArrowLeft': move(3); break;
+            }
+        }
+
+        // 0: Up, 1: Right, 2: Down, 3: Left
+        function move(direction) {
+            saveState();
+
+            let moved = false;
+            const newGrid = JSON.parse(JSON.stringify(grid));
+            let scoreGain = 0;
+
+            // Rotate grid to simplify logic (always move Left)
+            // 0 (Up) -> Rotate 3 times (270 deg) -> Move Left -> Rotate 1 time
+            // 1 (Right) -> Rotate 2 times -> Move Left -> Rotate 2 times
+            // 2 (Down) -> Rotate 1 time -> Move Left -> Rotate 3 times
+            // 3 (Left) -> No rotation -> Move Left -> No rotation
+
+            const rotations = [3, 2, 1, 0][direction];
+            let workingGrid = rotateGrid(newGrid, rotations);
+
+            // Process move left
+            for (let r = 0; r < SIZE; r++) {
+                let row = workingGrid[r].filter(x => x > 0);
+                for (let c = 0; c < row.length - 1; c++) {
+                    if (row[c] === row[c + 1]) {
+                        row[c] *= 2;
+                        scoreGain += row[c];
+                        row[c + 1] = 0;
+                    }
+                }
+                row = row.filter(x => x > 0);
+                while (row.length < SIZE) row.push(0);
+                if (row.join(',') !== workingGrid[r].join(',')) moved = true;
+                workingGrid[r] = row;
+            }
+
+            // Rotate back
+            grid = rotateGrid(workingGrid, (4 - rotations) % 4);
+
+            if (moved) {
+                score += scoreGain;
+                if (score > bestScore) {
+                    bestScore = score;
+                    localStorage.setItem('2048_best', bestScore);
+                }
+                addRandomTile();
+                updateView();
+
+                if (checkGameOver()) {
+                    GameInterface.showGameOver({
+                        score: score,
+                        text: 'Game Over'
+                    });
+                    stopAI();
+                }
+            } else {
+                // Undo the save state if no move happened
+                history.pop();
+            }
+        }
+
+        function rotateGrid(matrix, times) {
+            let res = JSON.parse(JSON.stringify(matrix));
+            for (let t = 0; t < times; t++) {
+                const newMat = Array(SIZE).fill().map(() => Array(SIZE).fill(0));
+                for (let r = 0; r < SIZE; r++) {
+                    for (let c = 0; c < SIZE; c++) {
+                        newMat[c][SIZE - 1 - r] = res[r][c];
+                    }
+                }
+                res = newMat;
+            }
+            return res;
+        }
+
+        function saveState() {
+            history.push({
+                grid: JSON.parse(JSON.stringify(grid)),
+                score: score
+            });
+            if (history.length > 5) history.shift();
+        }
+
+        function undo() {
+            if (history.length === 0) return;
+            const state = history.pop();
+            grid = state.grid;
+            score = state.score;
+            updateView();
+            gameOverOverlay.style.display = 'none';
+        }
+
+        function checkGameOver() {
+            // Check for empty cells
+            for (let r = 0; r < SIZE; r++)
+                for (let c = 0; c < SIZE; c++)
+                    if (grid[r][c] === 0) return false;
+
+            // Check for merges
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (c < SIZE - 1 && grid[r][c] === grid[r][c + 1]) return false;
+                    if (r < SIZE - 1 && grid[r][c] === grid[r + 1][c]) return false;
+                }
+            }
+            return true;
+        }
+
+        // AI Solver
+        function toggleAI() {
+            if (aiInterval) {
+                stopAI();
+            } else {
+                startAI();
+            }
+        }
+
+        function startAI() {
+            document.getElementById('aiBtn').textContent = "Stop AI";
+            aiInterval = setInterval(() => {
+                if (checkGameOver()) {
+                    stopAI();
+                    return;
+                }
+                makeAIMove();
+            }, 200);
+        }
+
+        function stopAI() {
+            clearInterval(aiInterval);
+            aiInterval = null;
+            document.getElementById('aiBtn').textContent = "AI Auto-Play";
+        }
+
+        function makeAIMove() {
+            // Simple heuristic: Try moves in order: Down, Right, Left, Up
+            // A real AI would use Expectimax, but this is a "solver option" for fun
+            // We'll try to keep largest tiles in bottom-right
+
+            // Try Down
+            let oldGrid = JSON.stringify(grid);
+            move(2); // Down
+            if (JSON.stringify(grid) !== oldGrid) return;
+
+            move(1); // Right
+            if (JSON.stringify(grid) !== oldGrid) return;
+
+            move(3); // Left
+            if (JSON.stringify(grid) !== oldGrid) return;
+
+            move(0); // Up
+        }
+
+        initGame();
+        bestScoreEl.textContent = bestScore;
+
+    </script>
+</body>
+
+</html>

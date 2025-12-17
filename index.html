@@ -1,226 +1,574 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Datov Arcade</title>
-  <style>
-    :root {
-      color-scheme: light dark;
-      --bg: #0d1117;
-      --panel: #111827;
-      --accent: #8b5cf6;
-      --accent-2: #06b6d4;
-      --text: #e5e7eb;
-      --muted: #9ca3af;
-      --shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
-      --radius: 16px;
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      background: radial-gradient(circle at 20% 20%, rgba(139,92,246,0.08), transparent 30%),
-                  radial-gradient(circle at 80% 10%, rgba(6,182,212,0.06), transparent 25%),
-                  linear-gradient(145deg, #0b1020, #0f172a);
-      color: var(--text);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 40px 16px 60px;
-    }
-
-    .page {
-      width: min(1200px, 100%);
-    }
-
-    header {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 16px;
-      align-items: center;
-      text-align: center;
-      padding: 32px;
-      background: rgba(17, 24, 39, 0.8);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-    }
-
-    header h1 {
-      margin: 0;
-      font-size: clamp(28px, 5vw, 42px);
-      letter-spacing: -0.5px;
-    }
-
-    header p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 18px;
-      line-height: 1.6;
-    }
-
-    .cta {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 12px;
-      padding: 12px 18px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      color: #0b1020;
-      font-weight: 700;
-      text-decoration: none;
-      box-shadow: 0 10px 40px rgba(139, 92, 246, 0.25);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .cta:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 16px 45px rgba(6, 182, 212, 0.25);
-    }
-
-    .grid {
-      margin-top: 28px;
-      display: grid;
-      gap: 18px;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    }
-
-    .card {
-      background: rgba(17, 24, 39, 0.78);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: var(--radius);
-      padding: 20px;
-      box-shadow: var(--shadow);
-      display: grid;
-      gap: 12px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .card::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at 20% 20%, rgba(139,92,246,0.08), transparent 40%);
-      pointer-events: none;
-    }
-
-    .tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 13px;
-      color: #c4d3ff;
-      background: rgba(99, 102, 241, 0.1);
-      border: 1px solid rgba(99, 102, 241, 0.25);
-      padding: 6px 10px;
-      border-radius: 999px;
-    }
-
-    .card h3 { margin: 0; font-size: 20px; }
-
-    .card p {
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.5;
-    }
-
-    .actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .button {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 14px;
-      border-radius: 12px;
-      text-decoration: none;
-      font-weight: 600;
-      transition: transform 0.2s ease, background 0.2s ease;
-    }
-
-    .button.primary {
-      background: rgba(139, 92, 246, 0.2);
-      color: #e9d5ff;
-      border: 1px solid rgba(139, 92, 246, 0.4);
-    }
-
-    .button.secondary {
-      background: rgba(255, 255, 255, 0.04);
-      color: var(--text);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .button:hover { transform: translateY(-2px); }
-
-    footer {
-      margin-top: 28px;
-      text-align: center;
-      color: var(--muted);
-      font-size: 14px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DATOV - Next Gen Gaming</title>
+    <meta name="description" content="Play the latest HTML5 games on DATOV. Mobile-first, responsive, and free.">
+    <link rel="stylesheet" href="style.css">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+
 <body>
-  <main class="page">
-    <header>
-      <div>
-        <h1>Datov Arcade</h1>
-        <p>Pick your next challenge from a growing catalog of voice-enabled and classic games. Start with Voice Chess and watch the library expand.</p>
-        <a class="cta" href="voice-chess/">Play Voice Chess →</a>
-      </div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="container flex flex-between">
+            <a href="index.html" class="logo">DATOV</a>
+
+            <nav>
+                <ul class="nav-links" id="navLinks">
+                    <li><a href="#games">Games</a></li>
+                    <li><a href="#popular">Popular</a></li>
+                    <li><a href="#new">New</a></li>
+                </ul>
+            </nav>
+
+            <div class="mobile-toggle" id="mobileToggle">
+                <i class="fas fa-bars"></i>
+            </div>
+        </div>
     </header>
 
-    <section class="grid" aria-label="Game library">
-      <article class="card">
-        <span class="tag">New · Voice</span>
-        <h3>Voice Chess</h3>
-        <p>Command the board hands-free. Speak your moves, follow along with live transcription, and stay on top of captured pieces.</p>
-        <div class="actions">
-          <a class="button primary" href="voice-chess/">Launch game</a>
-          <a class="button secondary" href="voice-chess/#how-it-works">How it works</a>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <span class="hero-subtitle">Welcome to the Future</span>
+            <h1>Play Without Limits</h1>
+            <p>Experience the next generation of browser gaming. No downloads, no lag, just pure fun. Optimized for
+                every device.</p>
+            <a href="#games" class="btn btn-primary">Start Playing <i class="fas fa-gamepad"
+                    style="margin-left: 8px;"></i></a>
         </div>
-      </article>
-
-      <article class="card">
-        <span class="tag">Coming Soon</span>
-        <h3>Galaxy Run</h3>
-        <p>Dodge asteroids, collect energy, and race against time in a neon side-scroller built for quick sessions.</p>
-        <div class="actions">
-          <span class="button secondary" aria-disabled="true">Launching soon</span>
-        </div>
-      </article>
-
-      <article class="card">
-        <span class="tag">Coming Soon</span>
-        <h3>Puzzle Forge</h3>
-        <p>Craft elaborate solutions from a handful of tiles. Every move counts in this minimalist spatial puzzler.</p>
-        <div class="actions">
-          <span class="button secondary" aria-disabled="true">Launching soon</span>
-        </div>
-      </article>
-
-      <article class="card">
-        <span class="tag">Coming Soon</span>
-        <h3>Arcade Arena</h3>
-        <p>Challenge friends in quick-fire retro mini-games. Leaderboards, tournaments, and weekly challenges included.</p>
-        <div class="actions">
-          <span class="button secondary" aria-disabled="true">Launching soon</span>
-        </div>
-      </article>
     </section>
 
-    <footer>
-      More titles will arrive regularly. Bookmark this page to stay in the loop.
+    <!-- Games Grid -->
+    <section id="games" class="section">
+        <div class="container">
+            <div class="flex flex-between" style="margin-bottom: 2rem;">
+                <h2>Featured Games</h2>
+                <a href="#" style="color: var(--primary); font-size: 0.9rem;">View All <i
+                        class="fas fa-arrow-right"></i></a>
+            </div>
+
+            <div class="filter-container">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="word">Word</button>
+                <button class="filter-btn" data-filter="puzzle">Puzzle</button>
+                <button class="filter-btn" data-filter="action">Action</button>
+                <button class="filter-btn" data-filter="strategy">Strategy</button>
+                <button class="filter-btn" data-filter="trivia">Trivia</button>
+                <button class="filter-btn" data-filter="classic">Classic</button>
+            </div>
+
+            <div class="games-grid" id="gamesGrid">
+                <!-- Batch 7: Word Games -->
+                <article class="game-card" data-category="word">
+                    <div class="card-image">
+                        <img src="screenshots/game-lettermaze.png" alt="Lettermaze" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Word</span>
+                            <span class="tag">Puzzle</span>
+                        </div>
+                        <h3 class="game-title">Lettermaze</h3>
+                        <p class="game-desc">Find hidden words in the grid.</p>
+                        <a href="game-lettermaze.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="word">
+                    <div class="card-image">
+                        <img src="screenshots/game-anagramania.png" alt="Anagramania" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Word</span>
+                            <span class="tag">Speed</span>
+                        </div>
+                        <h3 class="game-title">Anagramania</h3>
+                        <p class="game-desc">Unscramble words against the clock.</p>
+                        <a href="game-anagramania.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="word">
+                    <div class="card-image">
+                        <img src="screenshots/game-letterama.png" alt="Letterama" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Word</span>
+                            <span class="tag">Logic</span>
+                        </div>
+                        <h3 class="game-title">Letterama</h3>
+                        <p class="game-desc">Form words from a set of letters.</p>
+                        <a href="game-letterama.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="word">
+                    <div class="card-image">
+                        <img src="screenshots/game-squarewords.png" alt="SquareWords" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Word</span>
+                            <span class="tag">Logic</span>
+                        </div>
+                        <h3 class="game-title">SquareWords</h3>
+                        <p class="game-desc">Guess the 5-letter word.</p>
+                        <a href="game-squarewords.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="word">
+                    <div class="card-image">
+                        <img src="screenshots/game-whatword.png" alt="What Word?" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Word</span>
+                            <span class="tag">Trivia</span>
+                        </div>
+                        <h3 class="game-title">What Word?</h3>
+                        <p class="game-desc">Guess the word from its definition.</p>
+                        <a href="game-whatword.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="word">
+                    <div class="card-image">
+                        <img src="screenshots/game-spellice.png" alt="Spellice" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Word</span>
+                            <span class="tag">Audio</span>
+                        </div>
+                        <h3 class="game-title">Spellice</h3>
+                        <p class="game-desc">Test your spelling skills.</p>
+                        <a href="game-spellice.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="word">
+                    <div class="card-image">
+                        <img src="screenshots/game-wordhunt.png" alt="WordHunt" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Word</span>
+                            <span class="tag">Speed</span>
+                        </div>
+                        <h3 class="game-title">WordHunt</h3>
+                        <p class="game-desc">Find words in a 4x4 grid.</p>
+                        <a href="game-wordhunt.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="word">
+                    <div class="card-image">
+                        <img src="screenshots/game-speedtype.png" alt="SpeedType" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Word</span>
+                            <span class="tag">Typing</span>
+                        </div>
+                        <h3 class="game-title">SpeedType</h3>
+                        <p class="game-desc">Type falling words fast!</p>
+                        <a href="game-speedtype.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+
+                <!-- Batch 5 & 6: Newest Additions -->
+                <article class="game-card" data-category="action">
+                    <div class="card-image">
+                        <img src="screenshots/numberhunt.png" alt="NumberHunt" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Action</span>
+                            <span class="tag">Speed</span>
+                        </div>
+                        <h3 class="game-title">NumberHunt</h3>
+                        <p class="game-desc">Find the numbers as fast as you can.</p>
+                        <a href="game-numberhunt.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="strategy">
+                    <div class="card-image">
+                        <img src="screenshots/freecell.png" alt="Freecell" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Strategy</span>
+                            <span class="tag">Card</span>
+                        </div>
+                        <h3 class="game-title">Freecell</h3>
+                        <p class="game-desc">Classic solitaire card game.</p>
+                        <a href="game-freecell.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="action">
+                    <div class="card-image">
+                        <img src="screenshots/crimescene.png" alt="Crime Scene" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Action</span>
+                            <span class="tag">Hidden</span>
+                        </div>
+                        <h3 class="game-title">Crime Scene</h3>
+                        <p class="game-desc">Investigate and find clues.</p>
+                        <a href="game-crimescene.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="strategy">
+                    <div class="card-image">
+                        <img src="screenshots/mahjongg.png" alt="Mahjongg" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Strategy</span>
+                            <span class="tag">Puzzle</span>
+                        </div>
+                        <h3 class="game-title">Mahjongg</h3>
+                        <p class="game-desc">Match tiles to clear the board.</p>
+                        <a href="game-mahjongg.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="trivia">
+                    <div class="card-image">
+                        <img src="screenshots/whatwasthere.png" alt="What Was There?" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Trivia</span>
+                            <span class="tag">Memory</span>
+                        </div>
+                        <h3 class="game-title">What Was There?</h3>
+                        <p class="game-desc">Test your visual memory.</p>
+                        <a href="game-whatwasthere.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="trivia">
+                    <div class="card-image">
+                        <img src="screenshots/imagequiz.png" alt="The Image Quiz" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Trivia</span>
+                            <span class="tag">Visual</span>
+                        </div>
+                        <h3 class="game-title">The Image Quiz</h3>
+                        <p class="game-desc">Guess the image before it clears.</p>
+                        <a href="game-imagequiz.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="trivia">
+                    <div class="card-image">
+                        <img src="screenshots/trivianut.png" alt="TriviaNut" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Trivia</span>
+                            <span class="tag">Quiz</span>
+                        </div>
+                        <h3 class="game-title">TriviaNut</h3>
+                        <p class="game-desc">Test your general knowledge.</p>
+                        <a href="game-trivianut.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="strategy">
+                    <div class="card-image">
+                        <img src="screenshots/checkers.png" alt="Checkers" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Strategy</span>
+                            <span class="tag">Board</span>
+                        </div>
+                        <h3 class="game-title">Checkers</h3>
+                        <p class="game-desc">Classic board game strategy.</p>
+                        <a href="game-checkers.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+
+                <!-- Popular / Classics -->
+                <article class="game-card" data-category="action">
+                    <div class="card-image">
+                        <img src="screenshots/tetris.png" alt="Tetris" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Action</span>
+                            <span class="tag">Classic</span>
+                        </div>
+                        <h3 class="game-title">Tetris</h3>
+                        <p class="game-desc">The classic block-stacking game.</p>
+                        <a href="game-tetris.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="puzzle">
+                    <div class="card-image">
+                        <img src="screenshots/sudoku.png" alt="Sudoku" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Puzzle</span>
+                            <span class="tag">Logic</span>
+                        </div>
+                        <h3 class="game-title">Sudoku</h3>
+                        <p class="game-desc">Fill the grid with numbers.</p>
+                        <a href="game-sudoku.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="puzzle">
+                    <div class="card-image">
+                        <img src="screenshots/2048.png" alt="2048" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Puzzle</span>
+                            <span class="tag">Math</span>
+                        </div>
+                        <h3 class="game-title">2048</h3>
+                        <p class="game-desc">Combine tiles to reach 2048.</p>
+                        <a href="game-2048.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="puzzle">
+                    <div class="card-image">
+                        <img src="screenshots/minesweeper.png" alt="Minesweeper" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Puzzle</span>
+                            <span class="tag">Logic</span>
+                        </div>
+                        <h3 class="game-title">Minesweeper</h3>
+                        <p class="game-desc">Clear the minefield without detonating.</p>
+                        <a href="game-minesweeper.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+
+                <!-- Action / Arcade -->
+                <article class="game-card" data-category="action">
+                    <div class="card-image">
+                        <img src="screenshots/snakris.png" alt="Snakris" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Action</span>
+                            <span class="tag">Arcade</span>
+                        </div>
+                        <h3 class="game-title">Snakris</h3>
+                        <p class="game-desc">Snake meets Tetris.</p>
+                        <a href="game-snakris.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="action">
+                    <div class="card-image">
+                        <img src="screenshots/oooze.png" alt="Oooze" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Action</span>
+                            <span class="tag">Adventure</span>
+                        </div>
+                        <h3 class="game-title">Oooze</h3>
+                        <p class="game-desc">Navigate the sticky situation.</p>
+                        <a href="game-oooze.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="action">
+                    <div class="card-image">
+                        <img src="screenshots/rotate.png" alt="Rotate" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Action</span>
+                            <span class="tag">Physics</span>
+                        </div>
+                        <h3 class="game-title">Rotate</h3>
+                        <p class="game-desc">Spin the world to survive.</p>
+                        <a href="game-rotate.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+
+                <!-- Puzzle / Logic -->
+                <article class="game-card" data-category="puzzle">
+                    <div class="card-image">
+                        <img src="screenshots/dragger.png" alt="Dragger" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Puzzle</span>
+                            <span class="tag">Logic</span>
+                        </div>
+                        <h3 class="game-title">Dragger</h3>
+                        <p class="game-desc">Drag and drop puzzle.</p>
+                        <a href="game-dragger.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="puzzle">
+                    <div class="card-image">
+                        <img src="screenshots/counterfeit.png" alt="Counterfeit" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Puzzle</span>
+                            <span class="tag">Visual</span>
+                        </div>
+                        <h3 class="game-title">Counterfeit</h3>
+                        <p class="game-desc">Spot the fake.</p>
+                        <a href="game-counterfeit.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="puzzle">
+                    <div class="card-image">
+                        <img src="screenshots/colored-lines.png" alt="Colored Lines" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Puzzle</span>
+                            <span class="tag">Strategy</span>
+                        </div>
+                        <h3 class="game-title">Colored Lines</h3>
+                        <p class="game-desc">Connect the colors.</p>
+                        <a href="game-colored-lines.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="puzzle">
+                    <div class="card-image">
+                        <img src="screenshots/match-the-feel.png" alt="Match the Feel" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Puzzle</span>
+                            <span class="tag">Memory</span>
+                        </div>
+                        <h3 class="game-title">Match the Feel</h3>
+                        <p class="game-desc">A sensory matching game.</p>
+                        <a href="game-match-the-feel.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="strategy">
+                    <div class="card-image">
+                        <img src="screenshots/shipfind.png" alt="Shipfind" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Strategy</span>
+                            <span class="tag">Logic</span>
+                        </div>
+                        <h3 class="game-title">Shipfind</h3>
+                        <p class="game-desc">Locate the hidden ships.</p>
+                        <a href="game-shipfind.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="puzzle">
+                    <div class="card-image">
+                        <img src="screenshots/guess-the-colors.png" alt="Guess the Colors" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Puzzle</span>
+                            <span class="tag">Logic</span>
+                        </div>
+                        <h3 class="game-title">Guess the Colors</h3>
+                        <p class="game-desc">Crack the color code in limited attempts.</p>
+                        <a href="game-guess-the-colors.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="puzzle">
+                    <div class="card-image">
+                        <img src="screenshots/masterpieces.png" alt="Masterpieces" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Puzzle</span>
+                            <span class="tag">Art</span>
+                        </div>
+                        <h3 class="game-title">Masterpieces</h3>
+                        <p class="game-desc">Reassemble the art.</p>
+                        <a href="game-masterpieces.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="strategy">
+                    <div class="card-image">
+                        <img src="screenshots/reversi.png" alt="Reversi" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Strategy</span>
+                            <span class="tag">Classic</span>
+                        </div>
+                        <h3 class="game-title">Reversi</h3>
+                        <p class="game-desc">Flip your opponent's pieces.</p>
+                        <a href="game-reversi.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+                <article class="game-card" data-category="strategy">
+                    <div class="card-image">
+                        <img src="screenshots/chinese-checkers.png" alt="Chinese Checkers" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-tags">
+                            <span class="tag">Strategy</span>
+                            <span class="tag">Board</span>
+                        </div>
+                        <h3 class="game-title">Chinese Checkers</h3>
+                        <p class="game-desc">Race across the star.</p>
+                        <a href="game-chinese-checkers.html" class="play-btn">Play Now</a>
+                    </div>
+                </article>
+            </div>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    const filterBtns = document.querySelectorAll('.filter-btn');
+                    const gameCards = document.querySelectorAll('.game-card');
+
+                    filterBtns.forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            // Update active button
+                            filterBtns.forEach(b => b.classList.remove('active'));
+                            btn.classList.add('active');
+
+                            const filter = btn.dataset.filter;
+
+                            gameCards.forEach(card => {
+                                if (filter === 'all' || card.dataset.category === filter) {
+                                    card.style.display = '';
+                                    setTimeout(() => card.style.opacity = '1', 50);
+                                } else {
+                                    card.style.opacity = '0';
+                                    setTimeout(() => card.style.display = 'none', 300);
+                                }
+                            });
+                        });
+                    });
+                });
+            </script>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container footer-content">
+            <div class="logo" style="font-size: 1.2rem;">DATOV</div>
+
+            <div class="footer-links">
+                <a href="privacy.html">Privacy Policy</a>
+                <a href="imprint.html">Imprint</a>
+            </div>
+
+            <div class="copyright">
+                &copy; 2024 DATOV. All rights reserved.
+            </div>
+        </div>
     </footer>
-  </main>
+
+    <script src="script.js"></script>
 </body>
+
 </html>

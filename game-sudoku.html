@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sudoku - DATOV</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: rgba(21, 23, 37, 0.5);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .controls-top {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .sudoku-board {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 1px;
+            background: #555;
+            border: 2px solid var(--primary);
+            padding: 2px;
+            width: 100%;
+            max-width: 450px;
+            aspect-ratio: 1;
+        }
+
+        .cell {
+            background: rgba(21, 23, 37, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: #fff;
+            position: relative;
+        }
+
+        .cell:nth-child(3n) {
+            border-right: 2px solid #777;
+        }
+
+        .cell:nth-child(9n) {
+            border-right: none;
+        }
+
+        .cell:nth-child(n+19):nth-child(-n+27),
+        .cell:nth-child(n+46):nth-child(-n+54) {
+            border-bottom: 2px solid #777;
+        }
+
+        .cell.selected {
+            background: rgba(0, 243, 255, 0.2);
+        }
+
+        .cell.fixed {
+            font-weight: bold;
+            color: #aaa;
+            cursor: default;
+        }
+
+        .cell.error {
+            color: #ff4444;
+            background: rgba(255, 68, 68, 0.1);
+        }
+
+        .cell.highlight {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .numpad {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 0.5rem;
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .num-btn {
+            aspect-ratio: 1;
+            border: 1px solid var(--primary);
+            background: transparent;
+            color: var(--primary);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .num-btn:hover {
+            background: var(--primary);
+            color: #000;
+        }
+
+        .actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 500px) {
+            .cell {
+                font-size: 1rem;
+            }
+
+            .num-btn {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="container flex flex-between">
+            <a href="index.html" class="logo">DATOV</a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html#games">Back to Games</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="section" style="padding-top: 8rem;">
+        <div class="container">
+            <div class="game-container">
+                <h2>Sudoku</h2>
+
+                <div class="controls-top">
+                    <select id="difficulty" class="btn btn-outline">
+                        <option value="easy">Easy</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                    <button id="newGameBtn" class="btn btn-primary">New Game</button>
+                </div>
+
+                <div class="sudoku-board" id="board"></div>
+
+                <div class="numpad" id="numpad">
+                    <button class="num-btn" data-num="1">1</button>
+                    <button class="num-btn" data-num="2">2</button>
+                    <button class="num-btn" data-num="3">3</button>
+                    <button class="num-btn" data-num="4">4</button>
+                    <button class="num-btn" data-num="5">5</button>
+                    <button class="num-btn" data-num="6">6</button>
+                    <button class="num-btn" data-num="7">7</button>
+                    <button class="num-btn" data-num="8">8</button>
+                    <button class="num-btn" data-num="9">9</button>
+                </div>
+
+                <div class="actions">
+                    <button id="eraseBtn" class="btn btn-secondary"><i class="fas fa-eraser"></i> Erase</button>
+                    <button id="checkBtn" class="btn btn-primary">Check</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="game-interface.js"></script>
+    <script>
+        const boardEl = document.getElementById('board');
+        const numpadEl = document.getElementById('numpad');
+        let board = [];
+        let solution = [];
+        let selectedCell = null; // {r, c}
+
+        // Initialize Game Interface
+        GameInterface.init({
+            name: 'Sudoku',
+            description: 'Classic Sudoku puzzle. Fill the grid so that every row, column, and 3x3 box contains digits 1 through 9.',
+            url: 'game-sudoku.html',
+            howToPlay: [
+                'Select a cell to highlight it.',
+                'Use the number pad or keyboard to enter a number.',
+                'Each row, column, and 3x3 box must contain numbers 1-9 exactly once.',
+                'Blue numbers are fixed and cannot be changed.',
+                'Use "Check" to verify your solution.'
+            ]
+        });
+
+        document.getElementById('newGameBtn').addEventListener('click', startNewGame);
+        document.getElementById('checkBtn').addEventListener('click', checkSolution);
+        document.getElementById('eraseBtn').addEventListener('click', () => {
+            if (selectedCell) {
+                const { r, c } = selectedCell;
+                if (!board[r][c].fixed) {
+                    board[r][c].value = 0;
+                    renderBoard();
+                }
+            }
+        });
+
+        // Numpad clicks
+        document.querySelectorAll('.num-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (selectedCell) {
+                    const num = parseInt(btn.dataset.num);
+                    fillCell(num);
+                }
+            });
+        });
+
+        // Keyboard input
+        document.addEventListener('keydown', (e) => {
+            if (!selectedCell) return;
+            const key = e.key;
+            if (key >= '1' && key <= '9') {
+                fillCell(parseInt(key));
+            } else if (key === 'Backspace' || key === 'Delete') {
+                fillCell(0);
+            } else if (key.startsWith('Arrow')) {
+                moveSelection(key);
+            }
+        });
+
+        function startNewGame() {
+            const difficulty = document.getElementById('difficulty').value;
+            generateSudoku(difficulty);
+            renderBoard();
+            selectedCell = null;
+        }
+
+        function generateSudoku(difficulty) {
+            // 1. Generate full valid board
+            solution = Array(9).fill().map(() => Array(9).fill(0));
+            fillDiagonal();
+            solveSudoku(solution);
+
+            // 2. Remove digits based on difficulty
+            // Easy: 30-40 removed, Medium: 40-50, Hard: 50-60
+            let attempts = difficulty === 'easy' ? 30 : difficulty === 'medium' ? 45 : 55;
+
+            board = JSON.parse(JSON.stringify(solution)).map(row => row.map(val => ({
+                value: val,
+                fixed: true
+            })));
+
+            while (attempts > 0) {
+                let r = Math.floor(Math.random() * 9);
+                let c = Math.floor(Math.random() * 9);
+                if (board[r][c].value !== 0) {
+                    board[r][c].value = 0;
+                    board[r][c].fixed = false;
+                    attempts--;
+                }
+            }
+        }
+
+        function fillDiagonal() {
+            for (let i = 0; i < 9; i = i + 3) {
+                fillBox(i, i);
+            }
+        }
+
+        function fillBox(row, col) {
+            let num;
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    do {
+                        num = Math.floor(Math.random() * 9) + 1;
+                    } while (!isSafeInBox(row, col, num));
+                    solution[row + i][col + j] = num;
+                }
+            }
+        }
+
+        function isSafeInBox(rowStart, colStart, num) {
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    if (solution[rowStart + i][colStart + j] === num) return false;
+                }
+            }
+            return true;
+        }
+
+        function isSafe(grid, row, col, num) {
+            for (let x = 0; x < 9; x++) if (grid[row][x] === num) return false;
+            for (let x = 0; x < 9; x++) if (grid[x][col] === num) return false;
+            let startRow = row - row % 3, startCol = col - col % 3;
+            for (let i = 0; i < 3; i++)
+                for (let j = 0; j < 3; j++)
+                    if (grid[i + startRow][j + startCol] === num) return false;
+            return true;
+        }
+
+        function solveSudoku(grid) {
+            let row = -1, col = -1, isEmpty = true;
+            for (let i = 0; i < 9; i++) {
+                for (let j = 0; j < 9; j++) {
+                    if (grid[i][j] === 0) {
+                        row = i; col = j;
+                        isEmpty = false;
+                        break;
+                    }
+                }
+                if (!isEmpty) break;
+            }
+            if (isEmpty) return true;
+
+            for (let num = 1; num <= 9; num++) {
+                if (isSafe(grid, row, col, num)) {
+                    grid[row][col] = num;
+                    if (solveSudoku(grid)) return true;
+                    grid[row][col] = 0;
+                }
+            }
+            return false;
+        }
+
+        function renderBoard() {
+            boardEl.innerHTML = '';
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    if (board[r][c].value !== 0) {
+                        cell.textContent = board[r][c].value;
+                    }
+                    if (board[r][c].fixed) {
+                        cell.classList.add('fixed');
+                    }
+                    if (selectedCell && selectedCell.r === r && selectedCell.c === c) {
+                        cell.classList.add('selected');
+                    }
+                    // Highlight same numbers
+                    if (selectedCell && board[selectedCell.r][selectedCell.c].value !== 0 &&
+                        board[r][c].value === board[selectedCell.r][selectedCell.c].value) {
+                        cell.classList.add('highlight');
+                    }
+
+                    cell.addEventListener('click', () => selectCell(r, c));
+                    boardEl.appendChild(cell);
+                }
+            }
+        }
+
+        function selectCell(r, c) {
+            selectedCell = { r, c };
+            renderBoard();
+        }
+
+        function fillCell(num) {
+            if (selectedCell) {
+                const { r, c } = selectedCell;
+                if (!board[r][c].fixed) {
+                    board[r][c].value = num;
+                    renderBoard();
+                }
+            }
+        }
+
+        function moveSelection(key) {
+            if (!selectedCell) return;
+            let { r, c } = selectedCell;
+            if (key === 'ArrowUp') r = Math.max(0, r - 1);
+            if (key === 'ArrowDown') r = Math.min(8, r + 1);
+            if (key === 'ArrowLeft') c = Math.max(0, c - 1);
+            if (key === 'ArrowRight') c = Math.min(8, c + 1);
+            selectCell(r, c);
+        }
+
+        function checkSolution() {
+            let correct = true;
+            let complete = true;
+
+            // Check against solution
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    if (board[r][c].value === 0) {
+                        complete = false;
+                    } else if (board[r][c].value !== solution[r][c]) {
+                        correct = false;
+                        // Highlight error?
+                        // For now just general alert
+                    }
+                }
+            }
+
+            if (complete && correct) {
+                GameInterface.showGameOver({
+                    text: 'Sudoku Solved!',
+                    score: 'Mastermind',
+                    level: document.getElementById('difficulty').value
+                });
+            } else if (!correct) {
+                alert('There are errors in your solution.');
+            } else {
+                alert('Puzzle not finished yet.');
+            }
+        }
+
+        startNewGame();
+
+    </script>
+</body>
+
+</html>

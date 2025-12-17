@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Image Quiz - DATOV</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: rgba(21, 23, 37, 0.5);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .quiz-image-container {
+            width: 100%;
+            max-width: 600px;
+            aspect-ratio: 16/9;
+            background: #000;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .quiz-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: blur(20px);
+            transition: filter 5s ease-in-out;
+        }
+
+        .quiz-image.revealed {
+            filter: blur(0);
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .option-btn {
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-sm);
+            color: var(--text-main);
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .option-btn:hover {
+            background: rgba(0, 243, 255, 0.1);
+            border-color: var(--primary);
+        }
+
+        .option-btn.correct {
+            background: var(--primary);
+            color: #000;
+        }
+
+        .option-btn.wrong {
+            background: #ff4444;
+        }
+
+        .timer-display {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--secondary);
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="container flex flex-between">
+            <a href="index.html" class="logo">DATOV</a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html#games">Back to Games</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="section" style="padding-top: 8rem;">
+        <div class="container">
+            <div class="game-container">
+                <h2>The Image Quiz</h2>
+
+                <div class="hud" style="display: flex; justify-content: space-between; width: 100%; max-width: 600px;">
+                    <div>Score: <span id="score">0</span></div>
+                    <div class="timer-display" id="timer">10</div>
+                </div>
+
+                <div class="quiz-image-container">
+                    <img id="quizImage" class="quiz-image" src="" alt="Quiz Image">
+                </div>
+
+                <div class="options-grid" id="optionsGrid">
+                    <!-- Options -->
+                </div>
+
+                <div class="controls">
+                    <button id="startBtn" class="btn btn-primary">Start Quiz</button>
+                    <button id="nextBtn" class="btn btn-primary" style="display: none;">Next Question</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="game-interface.js"></script>
+    <script>
+        const quizImage = document.getElementById('quizImage');
+        const optionsGrid = document.getElementById('optionsGrid');
+        const startBtn = document.getElementById('startBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const scoreEl = document.getElementById('score');
+        const timerEl = document.getElementById('timer');
+
+        const QUESTIONS = [
+            {
+                image: 'https://images.unsplash.com/photo-1543349689-9a4d426bee8e?auto=format&fit=crop&q=80&w=800', // Eiffel Tower
+                options: ['Eiffel Tower', 'Big Ben', 'Leaning Tower of Pisa', 'Empire State Building'],
+                answer: 0
+            },
+            {
+                image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&q=80&w=800', // Pizza
+                options: ['Burger', 'Sushi', 'Pizza', 'Tacos'],
+                answer: 2
+            },
+            {
+                image: 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&q=80&w=800', // Lion
+                options: ['Tiger', 'Bear', 'Lion', 'Leopard'],
+                answer: 2
+            },
+            {
+                image: 'https://images.unsplash.com/photo-1564349683136-77e08dba1ef7?auto=format&fit=crop&q=80&w=800', // Panda
+                options: ['Koala', 'Panda', 'Polar Bear', 'Raccoon'],
+                answer: 1
+            },
+            {
+                image: 'https://images.unsplash.com/photo-1505761637980-4668dbb31898?auto=format&fit=crop&q=80&w=800', // Lotus Temple (or generic flower?) No, let's use something simpler.
+                // Let's use a Guitar
+                image: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&q=80&w=800',
+                options: ['Violin', 'Guitar', 'Cello', 'Banjo'],
+                answer: 1
+            }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        let timeLeft = 10;
+        let timerInterval;
+        let isAnswered = false;
+
+        // Initialize Game Interface
+        GameInterface.init({
+            name: 'The Image Quiz',
+            description: 'Identify the image as it slowly unblurs. The faster you answer, the more points you get.',
+            url: 'game-imagequiz.html',
+            howToPlay: [
+                'Click "Start Quiz" to begin.',
+                'An image will appear, initially blurred.',
+                'Guess what it is from the options.',
+                'The image clears up over time.',
+                'Points are awarded based on speed.'
+            ]
+        });
+
+        startBtn.addEventListener('click', startQuiz);
+        nextBtn.addEventListener('click', nextQuestion);
+
+        function startQuiz() {
+            score = 0;
+            currentQuestion = 0;
+            scoreEl.textContent = score;
+            startBtn.style.display = 'none';
+            playRound();
+        }
+
+        function playRound() {
+            if (currentQuestion >= QUESTIONS.length) {
+                endGame();
+                return;
+            }
+
+            const data = QUESTIONS[currentQuestion];
+
+            // Reset UI
+            isAnswered = false;
+            timeLeft = 10;
+            timerEl.textContent = timeLeft;
+            nextBtn.style.display = 'none';
+
+            // Setup Image
+            quizImage.src = data.image;
+            quizImage.classList.remove('revealed');
+
+            // Setup Options
+            optionsGrid.innerHTML = '';
+            data.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = opt;
+                btn.onclick = () => handleAnswer(idx, btn);
+                optionsGrid.appendChild(btn);
+            });
+
+            // Start Timer & Reveal
+            // Force reflow for transition reset
+            void quizImage.offsetWidth;
+            quizImage.classList.add('revealed'); // Start unblurring
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerEl.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    if (!isAnswered) handleTimeout();
+                }
+            }, 1000);
+        }
+
+        function handleAnswer(idx, btn) {
+            if (isAnswered) return;
+            isAnswered = true;
+            clearInterval(timerInterval);
+
+            const data = QUESTIONS[currentQuestion];
+            const buttons = optionsGrid.querySelectorAll('.option-btn');
+
+            if (idx === data.answer) {
+                btn.classList.add('correct');
+                // Score based on time left
+                const points = timeLeft * 100;
+                score += points;
+                scoreEl.textContent = score;
+                GameInterface.showMessage('Correct!', `+${points} points`);
+            } else {
+                btn.classList.add('wrong');
+                buttons[data.answer].classList.add('correct');
+                GameInterface.showMessage('Wrong!', 'Better luck next time.');
+            }
+
+            nextBtn.style.display = 'inline-block';
+        }
+
+        function handleTimeout() {
+            isAnswered = true;
+            const data = QUESTIONS[currentQuestion];
+            const buttons = optionsGrid.querySelectorAll('.option-btn');
+            buttons[data.answer].classList.add('correct');
+            GameInterface.showMessage('Time\'s Up!', 'Too slow!');
+            nextBtn.style.display = 'inline-block';
+        }
+
+        function nextQuestion() {
+            GameInterface.hideOverlay();
+            currentQuestion++;
+            playRound();
+        }
+
+        function endGame() {
+            GameInterface.showGameOver({
+                text: 'Quiz Complete!',
+                score: score,
+                level: 'Visual Master'
+            });
+            startBtn.style.display = 'inline-block';
+            startBtn.textContent = 'Play Again';
+        }
+
+    </script>
+</body>
+
+</html>

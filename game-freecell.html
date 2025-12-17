@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Freecell - DATOV</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: rgba(21, 23, 37, 0.5);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            max-width: 1000px;
+            margin: 0 auto;
+            user-select: none;
+        }
+
+        .top-area {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            gap: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .cells-group,
+        .foundations-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .card-slot {
+            width: 80px;
+            height: 120px;
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .tableau-area {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            gap: 10px;
+            min-height: 400px;
+        }
+
+        .tableau-col {
+            width: 80px;
+            position: relative;
+        }
+
+        .card {
+            width: 80px;
+            height: 120px;
+            background: #fff;
+            border-radius: 8px;
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+            cursor: grab;
+            transition: transform 0.1s;
+            z-index: 1;
+        }
+
+        .card:hover {
+            z-index: 100;
+        }
+
+        .card.red {
+            color: #d40000;
+        }
+
+        .card.black {
+            color: #000;
+        }
+
+        .card-top,
+        .card-bottom {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .card-bottom {
+            transform: rotate(180deg);
+        }
+
+        .card-center {
+            font-size: 2.5rem;
+            align-self: center;
+        }
+
+        .card.selected {
+            box-shadow: 0 0 10px 2px var(--primary);
+            z-index: 1000 !important;
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 800px) {
+
+            .card,
+            .card-slot,
+            .tableau-col {
+                width: 45px;
+                height: 70px;
+            }
+
+            .card-top,
+            .card-bottom {
+                font-size: 0.8rem;
+            }
+
+            .card-center {
+                font-size: 1.5rem;
+            }
+
+            .cells-group,
+            .foundations-group,
+            .tableau-area {
+                gap: 5px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="container flex flex-between">
+            <a href="index.html" class="logo">DATOV</a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html#games">Back to Games</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="section" style="padding-top: 8rem;">
+        <div class="container">
+            <div class="game-container">
+                <h2>Freecell</h2>
+
+                <div class="controls-top">
+                    <button id="newGameBtn" class="btn btn-primary">New Game</button>
+                    <button id="undoBtn" class="btn btn-outline">Undo</button>
+                </div>
+
+                <div class="top-area">
+                    <div class="cells-group" id="freecells">
+                        <!-- 4 Free Cells -->
+                        <div class="card-slot" data-type="freecell" data-idx="0"></div>
+                        <div class="card-slot" data-type="freecell" data-idx="1"></div>
+                        <div class="card-slot" data-type="freecell" data-idx="2"></div>
+                        <div class="card-slot" data-type="freecell" data-idx="3"></div>
+                    </div>
+                    <div class="foundations-group" id="foundations">
+                        <!-- 4 Foundations -->
+                        <div class="card-slot" data-type="foundation" data-idx="0"></div>
+                        <div class="card-slot" data-type="foundation" data-idx="1"></div>
+                        <div class="card-slot" data-type="foundation" data-idx="2"></div>
+                        <div class="card-slot" data-type="foundation" data-idx="3"></div>
+                    </div>
+                </div>
+
+                <div class="tableau-area" id="tableau">
+                    <!-- 8 Tableau Columns -->
+                    <div class="tableau-col" data-type="tableau" data-idx="0"></div>
+                    <div class="tableau-col" data-type="tableau" data-idx="1"></div>
+                    <div class="tableau-col" data-type="tableau" data-idx="2"></div>
+                    <div class="tableau-col" data-type="tableau" data-idx="3"></div>
+                    <div class="tableau-col" data-type="tableau" data-idx="4"></div>
+                    <div class="tableau-col" data-type="tableau" data-idx="5"></div>
+                    <div class="tableau-col" data-type="tableau" data-idx="6"></div>
+                    <div class="tableau-col" data-type="tableau" data-idx="7"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="game-interface.js"></script>
+    <script>
+        const SUITS = ['♠', '♥', '♣', '♦'];
+        const COLORS = { '♠': 'black', '♥': 'red', '♣': 'black', '♦': 'red' };
+        const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+
+        let gameState = {
+            freecells: [[], [], [], []],
+            foundations: [[], [], [], []],
+            tableau: [[], [], [], [], [], [], [], []],
+            history: []
+        };
+
+        let selectedCard = null; // { type: 'tableau', idx: 0, card: {} }
+
+        // Initialize Game Interface
+        GameInterface.init({
+            name: 'Freecell',
+            description: 'Classic Solitaire. Move all cards to the foundations.',
+            url: 'game-freecell.html',
+            howToPlay: [
+                'Build foundations up from Ace to King by suit.',
+                'Build tableau piles down by alternating colors.',
+                'Use free cells to temporarily hold cards.',
+                'You can move single cards or valid sequences.',
+                'Empty tableau spots can be filled with any card.'
+            ]
+        });
+
+        document.getElementById('newGameBtn').addEventListener('click', startNewGame);
+        document.getElementById('undoBtn').addEventListener('click', undoMove);
+
+        function startNewGame() {
+            // Create Deck
+            let deck = [];
+            for (let s of SUITS) {
+                for (let r = 0; r < RANKS.length; r++) {
+                    deck.push({ suit: s, rank: RANKS[r], value: r + 1, color: COLORS[s] });
+                }
+            }
+
+            // Shuffle
+            for (let i = deck.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [deck[i], deck[j]] = [deck[j], deck[i]];
+            }
+
+            // Deal
+            gameState = {
+                freecells: [[], [], [], []],
+                foundations: [[], [], [], []],
+                tableau: [[], [], [], [], [], [], [], []],
+                history: []
+            };
+
+            deck.forEach((card, i) => {
+                gameState.tableau[i % 8].push(card);
+            });
+
+            renderGame();
+        }
+
+        function renderGame() {
+            // Render Freecells
+            document.querySelectorAll('#freecells .card-slot').forEach((slot, i) => {
+                slot.innerHTML = '';
+                const card = gameState.freecells[i][0];
+                if (card) renderCard(slot, card, 'freecell', i);
+                slot.onclick = () => handleSlotClick('freecell', i);
+            });
+
+            // Render Foundations
+            document.querySelectorAll('#foundations .card-slot').forEach((slot, i) => {
+                slot.innerHTML = '';
+                const card = gameState.foundations[i][gameState.foundations[i].length - 1];
+                if (card) renderCard(slot, card, 'foundation', i);
+                else slot.innerHTML = `<div style="opacity:0.2; font-size:2rem; display:flex; justify-content:center; align-items:center; height:100%; color:#fff;">A</div>`;
+                slot.onclick = () => handleSlotClick('foundation', i);
+            });
+
+            // Render Tableau
+            document.querySelectorAll('#tableau .tableau-col').forEach((col, i) => {
+                col.innerHTML = '';
+                gameState.tableau[i].forEach((card, idx) => {
+                    renderCard(col, card, 'tableau', i, idx);
+                });
+                // Click handler for empty column or top card is handled by card click, 
+                // but we need handler for empty col
+                if (gameState.tableau[i].length === 0) {
+                    col.onclick = () => handleSlotClick('tableau', i);
+                }
+            });
+        }
+
+        function renderCard(container, card, type, colIdx, rowIdx = 0) {
+            const el = document.createElement('div');
+            el.className = `card ${card.color}`;
+            el.innerHTML = `
+                <div class="card-top"><span>${card.rank}</span><span>${card.suit}</span></div>
+                <div class="card-center">${card.suit}</div>
+                <div class="card-bottom"><span>${card.rank}</span><span>${card.suit}</span></div>
+            `;
+
+            if (type === 'tableau') {
+                el.style.top = `${rowIdx * 30}px`;
+            }
+
+            if (selectedCard && selectedCard.card === card) {
+                el.classList.add('selected');
+            }
+
+            el.onclick = (e) => {
+                e.stopPropagation();
+                handleCardClick(card, type, colIdx);
+            };
+
+            container.appendChild(el);
+        }
+
+        function handleCardClick(card, type, idx) {
+            // Logic:
+            // 1. If no card selected, select this one (if valid source).
+            // 2. If card selected:
+            //    a. If clicked same card, deselect.
+            //    b. If clicked different card, try to move selected to clicked (if valid target).
+
+            if (!selectedCard) {
+                // Can only select top card of pile (or freecell)
+                if (isValidSource(card, type, idx)) {
+                    selectedCard = { card, type, idx };
+                    renderGame();
+                }
+            } else {
+                if (selectedCard.card === card) {
+                    selectedCard = null;
+                    renderGame();
+                } else {
+                    // Try to move to this card (which implies moving to this pile)
+                    tryMove(selectedCard, { type, idx });
+                }
+            }
+        }
+
+        function handleSlotClick(type, idx) {
+            if (selectedCard) {
+                tryMove(selectedCard, { type, idx });
+            }
+        }
+
+        function isValidSource(card, type, idx) {
+            if (type === 'freecell') return true;
+            if (type === 'tableau') {
+                // Must be last card in col
+                const col = gameState.tableau[idx];
+                return col[col.length - 1] === card;
+            }
+            return false;
+        }
+
+        function tryMove(source, target) {
+            // Validate move
+            if (isValidMove(source, target)) {
+                saveState();
+                executeMove(source, target);
+                selectedCard = null;
+                renderGame();
+                checkWin();
+                autoMoveToFoundation();
+            } else {
+                // Invalid move visual feedback?
+                // For now just deselect
+                selectedCard = null;
+                renderGame();
+            }
+        }
+
+        function isValidMove(source, target) {
+            const sCard = source.card;
+
+            if (target.type === 'freecell') {
+                // Can only move if freecell is empty
+                return gameState.freecells[target.idx].length === 0;
+            }
+
+            if (target.type === 'foundation') {
+                const pile = gameState.foundations[target.idx];
+                if (pile.length === 0) {
+                    return sCard.value === 1; // Must be Ace
+                }
+                const top = pile[pile.length - 1];
+                return top.suit === sCard.suit && top.value === sCard.value - 1;
+            }
+
+            if (target.type === 'tableau') {
+                const col = gameState.tableau[target.idx];
+                if (col.length === 0) return true; // Can move anything to empty tableau
+                const top = col[col.length - 1];
+                // Must be alternating color and rank - 1
+                return top.color !== sCard.color && top.value === sCard.value + 1;
+            }
+
+            return false;
+        }
+
+        function executeMove(source, target) {
+            // Remove from source
+            let card;
+            if (source.type === 'freecell') card = gameState.freecells[source.idx].pop();
+            else if (source.type === 'tableau') card = gameState.tableau[source.idx].pop();
+
+            // Add to target
+            if (target.type === 'freecell') gameState.freecells[target.idx].push(card);
+            else if (target.type === 'foundation') gameState.foundations[target.idx].push(card);
+            else if (target.type === 'tableau') gameState.tableau[target.idx].push(card);
+        }
+
+        function autoMoveToFoundation() {
+            // Check if any exposed cards can be moved to foundation safely
+            // Simplified: just check if any top card fits a foundation
+            let moved = false;
+
+            // Check freecells
+            gameState.freecells.forEach((pile, i) => {
+                if (pile.length > 0) {
+                    const card = pile[0];
+                    if (tryAutoMove(card, 'freecell', i)) moved = true;
+                }
+            });
+
+            // Check tableau
+            gameState.tableau.forEach((col, i) => {
+                if (col.length > 0) {
+                    const card = col[col.length - 1];
+                    if (tryAutoMove(card, 'tableau', i)) moved = true;
+                }
+            });
+
+            if (moved) {
+                renderGame();
+                setTimeout(autoMoveToFoundation, 200); // Chain moves
+            }
+        }
+
+        function tryAutoMove(card, type, idx) {
+            for (let f = 0; f < 4; f++) {
+                const pile = gameState.foundations[f];
+                let targetCard = pile.length > 0 ? pile[pile.length - 1] : null;
+
+                let canMove = false;
+                if (!targetCard) {
+                    if (card.value === 1) canMove = true;
+                } else {
+                    if (targetCard.suit === card.suit && targetCard.value === card.value - 1) canMove = true;
+                }
+
+                if (canMove) {
+                    // Execute move
+                    if (type === 'freecell') gameState.freecells[idx].pop();
+                    else gameState.tableau[idx].pop();
+                    gameState.foundations[f].push(card);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function saveState() {
+            // Deep copy state for undo
+            // Limit history size?
+            const state = JSON.stringify({
+                freecells: gameState.freecells,
+                foundations: gameState.foundations,
+                tableau: gameState.tableau
+            });
+            gameState.history.push(state);
+        }
+
+        function undoMove() {
+            if (gameState.history.length > 0) {
+                const prev = JSON.parse(gameState.history.pop());
+                gameState.freecells = prev.freecells;
+                gameState.foundations = prev.foundations;
+                gameState.tableau = prev.tableau;
+                renderGame();
+            }
+        }
+
+        function checkWin() {
+            let total = 0;
+            gameState.foundations.forEach(f => total += f.length);
+            if (total === 52) {
+                GameInterface.showGameOver({
+                    text: 'You Win!',
+                    score: 'Solved',
+                    level: 'Master'
+                });
+            }
+        }
+
+        startNewGame();
+
+    </script>
+</body>
+
+</html>

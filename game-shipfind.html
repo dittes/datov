@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shipfind - DATOV</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: rgba(21, 23, 37, 0.5);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .board-wrapper {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            grid-template-rows: auto 1fr;
+            gap: 5px;
+        }
+
+        .col-hints {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-column: 2;
+            gap: 2px;
+            margin-bottom: 5px;
+        }
+
+        .row-hints {
+            display: grid;
+            grid-template-rows: repeat(10, 1fr);
+            grid-row: 2;
+            gap: 2px;
+            margin-right: 5px;
+        }
+
+        .hint {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: var(--primary);
+            font-size: 0.9rem;
+        }
+
+        .grid-board {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(10, 1fr);
+            gap: 2px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px;
+            border-radius: var(--radius-sm);
+            grid-column: 2;
+            grid-row: 2;
+            width: 100%;
+            aspect-ratio: 1;
+        }
+
+        .cell {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 2px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+
+        .cell:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .cell.water {
+            background: rgba(0, 100, 255, 0.2);
+            color: rgba(0, 200, 255, 0.5);
+        }
+
+        .cell.ship {
+            background: var(--secondary);
+            box-shadow: 0 0 5px var(--secondary);
+        }
+
+        .fleet-info {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .ship-icon {
+            display: flex;
+            gap: 2px;
+        }
+
+        .ship-block {
+            width: 15px;
+            height: 15px;
+            background: var(--secondary);
+            border-radius: 2px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+        }
+
+        @media (max-width: 500px) {
+            .cell {
+                font-size: 0.8rem;
+            }
+
+            .hint {
+                font-size: 0.7rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="container flex flex-between">
+            <a href="index.html" class="logo">DATOV</a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html#games">Back to Games</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="section" style="padding-top: 8rem;">
+        <div class="container">
+            <div class="game-container">
+                <h2>Find the Fleet</h2>
+
+                <div class="fleet-info">
+                    <div class="ship-icon" title="Battleship (4)">
+                        <div class="ship-block"></div>
+                        <div class="ship-block"></div>
+                        <div class="ship-block"></div>
+                        <div class="ship-block"></div>
+                    </div>
+                    <div class="ship-icon" title="Cruiser (3)">
+                        <div class="ship-block"></div>
+                        <div class="ship-block"></div>
+                        <div class="ship-block"></div>
+                    </div>
+                    <div class="ship-icon" title="Cruiser (3)">
+                        <div class="ship-block"></div>
+                        <div class="ship-block"></div>
+                        <div class="ship-block"></div>
+                    </div>
+                    <div class="ship-icon" title="Destroyer (2)">
+                        <div class="ship-block"></div>
+                        <div class="ship-block"></div>
+                    </div>
+                    <div class="ship-icon" title="Destroyer (2)">
+                        <div class="ship-block"></div>
+                        <div class="ship-block"></div>
+                    </div>
+                    <div class="ship-icon" title="Destroyer (2)">
+                        <div class="ship-block"></div>
+                        <div class="ship-block"></div>
+                    </div>
+                    <div class="ship-icon" title="Submarine (1)">
+                        <div class="ship-block"></div>
+                    </div>
+                    <div class="ship-icon" title="Submarine (1)">
+                        <div class="ship-block"></div>
+                    </div>
+                    <div class="ship-icon" title="Submarine (1)">
+                        <div class="ship-block"></div>
+                    </div>
+                    <div class="ship-icon" title="Submarine (1)">
+                        <div class="ship-block"></div>
+                    </div>
+                </div>
+
+                <div class="board-wrapper">
+                    <div class="row-hints" id="rowHints"></div>
+                    <div class="col-hints" id="colHints"></div>
+                    <div class="grid-board" id="grid"></div>
+                </div>
+
+                <div class="controls">
+                    <button id="newGameBtn" class="btn btn-primary">New Game</button>
+                    <button id="checkBtn" class="btn btn-primary">Check</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="game-interface.js"></script>
+    <script>
+        const SIZE = 10;
+        let solution = []; // 10x10 grid, 1=ship, 0=water
+        let playerGrid = []; // 0=unknown, 1=water, 2=ship
+
+        // Fleet: 1x4, 2x3, 3x2, 4x1
+        const FLEET = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1];
+
+        const gridEl = document.getElementById('grid');
+        const rowHintsEl = document.getElementById('rowHints');
+        const colHintsEl = document.getElementById('colHints');
+
+        // Initialize Game Interface
+        GameInterface.init({
+            name: 'Find the Fleet',
+            description: 'A logic puzzle based on Battleship. Deduce the location of the fleet using the row and column counts.',
+            url: 'game-shipfind.html',
+            howToPlay: [
+                'Numbers indicate how many ship segments are in each row/column.',
+                'Left-click to mark a ship segment.',
+                'Right-click to mark water.',
+                'Ships cannot touch each other, not even diagonally.',
+                'Find all ships to win!'
+            ]
+        });
+
+        document.getElementById('newGameBtn').addEventListener('click', initGame);
+        document.getElementById('checkBtn').addEventListener('click', checkSolution);
+
+        function initGame() {
+            generatePuzzle();
+            playerGrid = Array(SIZE).fill().map(() => Array(SIZE).fill(0));
+            renderBoard();
+        }
+
+        function generatePuzzle() {
+            // Simple placement logic
+            // In a real game, we'd need a robust generator to ensure validity and no touching
+            // For this MVP, we'll try random placement with retry
+
+            let success = false;
+            while (!success) {
+                solution = Array(SIZE).fill().map(() => Array(SIZE).fill(0));
+                success = placeFleet();
+            }
+
+            calculateHints();
+        }
+
+        function placeFleet() {
+            for (let shipSize of FLEET) {
+                let placed = false;
+                let attempts = 0;
+                while (!placed && attempts < 100) {
+                    attempts++;
+                    const horizontal = Math.random() > 0.5;
+                    const r = Math.floor(Math.random() * SIZE);
+                    const c = Math.floor(Math.random() * SIZE);
+
+                    if (canPlace(r, c, shipSize, horizontal)) {
+                        placeShip(r, c, shipSize, horizontal);
+                        placed = true;
+                    }
+                }
+                if (!placed) return false;
+            }
+            return true;
+        }
+
+        function canPlace(r, c, size, horizontal) {
+            // Check bounds
+            if (horizontal && c + size > SIZE) return false;
+            if (!horizontal && r + size > SIZE) return false;
+
+            // Check overlap and adjacency (ships cannot touch, even diagonally)
+            const rStart = Math.max(0, r - 1);
+            const rEnd = Math.min(SIZE - 1, horizontal ? r + 1 : r + size);
+            const cStart = Math.max(0, c - 1);
+            const cEnd = Math.min(SIZE - 1, horizontal ? c + size : c + 1);
+
+            for (let i = rStart; i <= rEnd; i++) {
+                for (let j = cStart; j <= cEnd; j++) {
+                    if (solution[i][j] === 1) return false;
+                }
+            }
+            return true;
+        }
+
+        function placeShip(r, c, size, horizontal) {
+            for (let i = 0; i < size; i++) {
+                if (horizontal) solution[r][c + i] = 1;
+                else solution[r + i][c] = 1;
+            }
+        }
+
+        function calculateHints() {
+            rowHintsEl.innerHTML = '';
+            colHintsEl.innerHTML = '';
+
+            // Rows
+            for (let r = 0; r < SIZE; r++) {
+                const count = solution[r].reduce((a, b) => a + b, 0);
+                const hint = document.createElement('div');
+                hint.className = 'hint';
+                hint.textContent = count;
+                rowHintsEl.appendChild(hint);
+            }
+
+            // Cols
+            for (let c = 0; c < SIZE; c++) {
+                let count = 0;
+                for (let r = 0; r < SIZE; r++) count += solution[r][c];
+                const hint = document.createElement('div');
+                hint.className = 'hint';
+                hint.textContent = count;
+                colHintsEl.appendChild(hint);
+            }
+        }
+
+        function renderBoard() {
+            gridEl.innerHTML = '';
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+
+                    if (playerGrid[r][c] === 1) {
+                        cell.classList.add('water');
+                        cell.innerHTML = '<i class="fas fa-water"></i>';
+                    } else if (playerGrid[r][c] === 2) {
+                        cell.classList.add('ship');
+                    }
+
+                    cell.addEventListener('click', () => toggleCell(r, c));
+                    cell.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        toggleCell(r, c, true);
+                    });
+
+                    gridEl.appendChild(cell);
+                }
+            }
+        }
+
+        function toggleCell(r, c, rightClick = false) {
+            // Cycle: Unknown -> Ship -> Water -> Unknown
+            // Or Left Click: Unknown -> Ship -> Unknown
+            // Right Click: Unknown -> Water -> Unknown
+
+            if (rightClick) {
+                if (playerGrid[r][c] === 1) playerGrid[r][c] = 0;
+                else playerGrid[r][c] = 1;
+            } else {
+                if (playerGrid[r][c] === 2) playerGrid[r][c] = 0;
+                else playerGrid[r][c] = 2;
+            }
+            renderBoard();
+        }
+
+        function checkSolution() {
+            let correct = true;
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    const isShip = solution[r][c] === 1;
+                    const markedShip = playerGrid[r][c] === 2;
+                    if (isShip !== markedShip) correct = false;
+                }
+            }
+
+            if (correct) {
+                GameInterface.showGameOver({
+                    text: 'Congratulations! Fleet Found!',
+                    score: 'Victory'
+                });
+            } else {
+                alert("Not quite right. Keep looking!");
+            }
+        }
+
+        initGame();
+
+    </script>
+</body>
+
+</html>

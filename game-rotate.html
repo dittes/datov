@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rotate - DATOV</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: rgba(21, 23, 37, 0.5);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .grid-board {
+            display: grid;
+            gap: 2px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px;
+            border-radius: var(--radius-sm);
+        }
+
+        .cell {
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cell:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .pipe {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+
+        /* Pipe Shapes using CSS pseudo-elements */
+        .pipe::before,
+        .pipe::after {
+            content: '';
+            position: absolute;
+            background: #333;
+            transition: background 0.3s;
+        }
+
+        .pipe.active::before,
+        .pipe.active::after {
+            background: var(--primary);
+            box-shadow: 0 0 10px var(--primary);
+        }
+
+        /* Straight (Vertical default) */
+        .pipe-straight::before {
+            width: 30%;
+            height: 100%;
+            left: 35%;
+            top: 0;
+        }
+
+        /* Corner (Top-Right default) */
+        .pipe-corner::before {
+            width: 30%;
+            height: 65%;
+            /* Top part */
+            left: 35%;
+            top: 0;
+        }
+
+        .pipe-corner::after {
+            width: 65%;
+            /* Right part */
+            height: 30%;
+            left: 35%;
+            top: 35%;
+        }
+
+        /* T-Shape (Top-Right-Bottom default) */
+        .pipe-t::before {
+            width: 30%;
+            height: 100%;
+            /* Vertical */
+            left: 35%;
+            top: 0;
+        }
+
+        .pipe-t::after {
+            width: 65%;
+            /* Right arm */
+            height: 30%;
+            left: 35%;
+            top: 35%;
+        }
+
+        /* Cross */
+        .pipe-cross::before {
+            width: 30%;
+            height: 100%;
+            left: 35%;
+            top: 0;
+        }
+
+        .pipe-cross::after {
+            width: 100%;
+            height: 30%;
+            left: 0;
+            top: 35%;
+        }
+
+        /* End Cap (Top default) */
+        .pipe-end::before {
+            width: 30%;
+            height: 65%;
+            left: 35%;
+            top: 35%;
+            border-radius: 0 0 50% 50%;
+        }
+
+        /* Start/End markers */
+        .marker {
+            position: absolute;
+            width: 40%;
+            height: 40%;
+            border-radius: 50%;
+            z-index: 10;
+        }
+
+        .marker.start {
+            background: #00ff00;
+            box-shadow: 0 0 10px #00ff00;
+        }
+
+        .marker.end {
+            background: #ff0000;
+            box-shadow: 0 0 10px #ff0000;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="container flex flex-between">
+            <a href="index.html" class="logo">DATOV</a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html#games">Back to Games</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="section" style="padding-top: 8rem;">
+        <div class="container">
+            <div class="game-container">
+                <h2>Rotate</h2>
+                <div id="levelDisplay" style="font-size: 1.2rem; color: var(--primary);">Level 1</div>
+
+                <div class="grid-board" id="grid"></div>
+
+                <div class="controls">
+                    <button id="resetBtn" class="btn btn-primary">Reset</button>
+                    <button id="nextBtn" class="btn btn-primary" style="display: none;">Next Level</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="game-interface.js"></script>
+    <script>
+        const SIZE = 5;
+        const CELL_SIZE = 60;
+        let grid = []; // { type, rotation, connected }
+        let startPos = { x: 0, y: 0 };
+        let endPos = { x: 4, y: 4 };
+        let currentLevel = parseInt(localStorage.getItem('rotate_level')) || 1;
+
+        // Pipe types: straight, corner, t, cross
+        // Connections: [Top, Right, Bottom, Left] (1=connect, 0=no)
+        const PIPES = {
+            straight: [1, 0, 1, 0],
+            corner: [1, 1, 0, 0],
+            t: [1, 1, 1, 0],
+            cross: [1, 1, 1, 1]
+        };
+
+        const gridEl = document.getElementById('grid');
+
+        // Initialize Game Interface
+        GameInterface.init({
+            name: 'Rotate',
+            description: 'A pipe connection puzzle. Rotate the pipes to create a path from the green start to the red end.',
+            url: 'game-rotate.html',
+            howToPlay: [
+                'Click on a pipe to rotate it 90 degrees.',
+                'Connect the green start marker to the red end marker.',
+                'The path must be continuous.',
+                'Complete levels to progress!'
+            ]
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => loadLevel(currentLevel));
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            currentLevel++;
+            localStorage.setItem('rotate_level', currentLevel);
+            loadLevel(currentLevel);
+            document.getElementById('nextBtn').style.display = 'none';
+        });
+
+        function loadLevel(level) {
+            document.getElementById('levelDisplay').textContent = `Level ${level}`;
+
+            // Generate a random solvable path for the level
+            // For MVP, we'll just pre-define a simple random grid
+            // A real generator would use a maze algorithm
+
+            grid = [];
+            gridEl.style.gridTemplateColumns = `repeat(${SIZE}, ${CELL_SIZE}px)`;
+            gridEl.style.gridTemplateRows = `repeat(${SIZE}, ${CELL_SIZE}px)`;
+            gridEl.innerHTML = '';
+
+            for (let y = 0; y < SIZE; y++) {
+                let row = [];
+                for (let x = 0; x < SIZE; x++) {
+                    const types = ['straight', 'corner', 't', 'cross'];
+                    const type = types[Math.floor(Math.random() * types.length)];
+                    const rotation = Math.floor(Math.random() * 4);
+
+                    row.push({
+                        type: type,
+                        rotation: rotation,
+                        connected: false
+                    });
+
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.style.width = `${CELL_SIZE}px`;
+                    cell.style.height = `${CELL_SIZE}px`;
+
+                    const pipe = document.createElement('div');
+                    pipe.className = `pipe pipe-${type}`;
+                    pipe.style.transform = `rotate(${rotation * 90}deg)`;
+                    pipe.id = `pipe-${x}-${y}`;
+
+                    cell.appendChild(pipe);
+
+                    if (x === startPos.x && y === startPos.y) {
+                        const marker = document.createElement('div');
+                        marker.className = 'marker start';
+                        cell.appendChild(marker);
+                    }
+                    if (x === endPos.x && y === endPos.y) {
+                        const marker = document.createElement('div');
+                        marker.className = 'marker end';
+                        cell.appendChild(marker);
+                    }
+
+                    cell.addEventListener('click', () => rotatePipe(x, y));
+                    gridEl.appendChild(cell);
+                }
+                grid.push(row);
+            }
+
+            checkConnections();
+        }
+
+        function rotatePipe(x, y) {
+            grid[y][x].rotation = (grid[y][x].rotation + 1) % 4;
+            const pipe = document.getElementById(`pipe-${x}-${y}`);
+            pipe.style.transform = `rotate(${grid[y][x].rotation * 90}deg)`;
+            checkConnections();
+        }
+
+        function checkConnections() {
+            // Reset connections
+            for (let y = 0; y < SIZE; y++) {
+                for (let x = 0; x < SIZE; x++) {
+                    grid[y][x].connected = false;
+                    document.getElementById(`pipe-${x}-${y}`).classList.remove('active');
+                }
+            }
+
+            // Flood fill from start
+            const queue = [startPos];
+            grid[startPos.y][startPos.x].connected = true;
+            document.getElementById(`pipe-${startPos.x}-${startPos.y}`).classList.add('active');
+
+            let reachedEnd = false;
+
+            while (queue.length > 0) {
+                const curr = queue.shift();
+                if (curr.x === endPos.x && curr.y === endPos.y) reachedEnd = true;
+
+                const currPipe = grid[curr.y][curr.x];
+                const currConns = getConnections(currPipe.type, currPipe.rotation);
+
+                // Check neighbors: Top, Right, Bottom, Left
+                const dirs = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+
+                dirs.forEach((dir, idx) => {
+                    if (currConns[idx]) { // If current pipe has connection in this direction
+                        const nx = curr.x + dir[0];
+                        const ny = curr.y + dir[1];
+
+                        if (nx >= 0 && nx < SIZE && ny >= 0 && ny < SIZE) {
+                            const nextPipe = grid[ny][nx];
+                            if (!nextPipe.connected) {
+                                // Check if neighbor connects back
+                                // Neighbor's opposite direction must be open
+                                const neighborIdx = (idx + 2) % 4;
+                                const nextConns = getConnections(nextPipe.type, nextPipe.rotation);
+
+                                if (nextConns[neighborIdx]) {
+                                    nextPipe.connected = true;
+                                    document.getElementById(`pipe-${nx}-${ny}`).classList.add('active');
+                                    queue.push({ x: nx, y: ny });
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            if (reachedEnd) {
+                // Save progress
+                localStorage.setItem('rotate_level', currentLevel + 1);
+
+                GameInterface.showGameOver({
+                    text: 'Level Complete!',
+                    level: currentLevel,
+                    score: 'Success'
+                });
+            }
+        }
+
+        function getConnections(type, rotation) {
+            // Rotate the base connections array
+            const base = PIPES[type];
+            const rotated = [0, 0, 0, 0];
+            for (let i = 0; i < 4; i++) {
+                rotated[(i + rotation) % 4] = base[i];
+            }
+            return rotated;
+        }
+
+        loadLevel(currentLevel);
+
+    </script>
+</body>
+
+</html>

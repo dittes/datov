@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minesweeper - DATOV</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: rgba(21, 23, 37, 0.5);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .controls-top {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 2rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--primary);
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-sm);
+            margin-bottom: 1rem;
+        }
+
+        .minesweeper-board {
+            display: grid;
+            gap: 1px;
+            background: #555;
+            border: 2px solid #777;
+            padding: 2px;
+            user-select: none;
+        }
+
+        .cell {
+            width: 30px;
+            height: 30px;
+            background: #ccc;
+            border: 2px outset #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: monospace;
+            font-size: 1.2rem;
+        }
+
+        .cell:active {
+            border: 2px inset #eee;
+        }
+
+        .cell.revealed {
+            background: #bbb;
+            border: 1px solid #999;
+        }
+
+        .cell.mine {
+            background: #f00;
+        }
+
+        .cell.flagged {
+            color: #f00;
+        }
+
+        /* Number colors */
+        .c1 {
+            color: blue;
+        }
+
+        .c2 {
+            color: green;
+        }
+
+        .c3 {
+            color: red;
+        }
+
+        .c4 {
+            color: darkblue;
+        }
+
+        .c5 {
+            color: brown;
+        }
+
+        .c6 {
+            color: cyan;
+        }
+
+        .c7 {
+            color: black;
+        }
+
+        .c8 {
+            color: gray;
+        }
+
+        @media (max-width: 500px) {
+            .cell {
+                width: 25px;
+                height: 25px;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="container flex flex-between">
+            <a href="index.html" class="logo">DATOV</a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html#games">Back to Games</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="section" style="padding-top: 8rem;">
+        <div class="container">
+            <div class="game-container">
+                <h2>Minesweeper</h2>
+
+                <div class="controls-top">
+                    <select id="difficulty" class="btn btn-outline">
+                        <option value="easy">Easy (9x9, 10 mines)</option>
+                        <option value="medium" selected>Medium (16x16, 40 mines)</option>
+                        <option value="hard">Hard (30x16, 99 mines)</option>
+                    </select>
+                    <button id="newGameBtn" class="btn btn-primary"><i class="fas fa-smile"></i> New Game</button>
+                </div>
+
+                <div class="stats-bar">
+                    <div><i class="fas fa-bomb"></i> <span id="minesCount">000</span></div>
+                    <div><i class="fas fa-clock"></i> <span id="timer">000</span></div>
+                </div>
+
+                <div class="minesweeper-board" id="board"></div>
+            </div>
+        </div>
+    </section>
+
+    <script src="game-interface.js"></script>
+    <script>
+        const boardEl = document.getElementById('board');
+        const minesCountEl = document.getElementById('minesCount');
+        const timerEl = document.getElementById('timer');
+        const difficultySelect = document.getElementById('difficulty');
+        const newGameBtn = document.getElementById('newGameBtn');
+
+        let grid = [];
+        let rows = 9;
+        let cols = 9;
+        let mines = 10;
+        let flags = 0;
+        let gameOver = false;
+        let firstClick = true;
+        let timerInterval;
+        let time = 0;
+
+        // Initialize Game Interface
+        GameInterface.init({
+            name: 'Minesweeper',
+            description: 'Classic logic game. Clear the board without detonating any mines.',
+            url: 'game-minesweeper.html',
+            howToPlay: [
+                'Left-click to reveal a cell.',
+                'Right-click to flag a potential mine.',
+                'Numbers indicate how many mines are adjacent to that cell.',
+                'Reveal all non-mine cells to win.'
+            ]
+        });
+
+        newGameBtn.addEventListener('click', startNewGame);
+        difficultySelect.addEventListener('change', startNewGame);
+
+        function startNewGame() {
+            const diff = difficultySelect.value;
+            if (diff === 'easy') { rows = 9; cols = 9; mines = 10; }
+            else if (diff === 'medium') { rows = 16; cols = 16; mines = 40; }
+            else if (diff === 'hard') { rows = 16; cols = 30; mines = 99; } // 30x16 fits better on wide screens
+
+            // Adjust for mobile if needed
+            if (window.innerWidth < 600 && cols > 10) {
+                // Force smaller grid on mobile? Or scroll?
+                // Let's just let css grid handle it, but maybe limit hard mode width
+                boardEl.style.overflowX = 'auto';
+            }
+
+            boardEl.style.gridTemplateColumns = `repeat(${cols}, auto)`;
+
+            grid = [];
+            flags = 0;
+            time = 0;
+            gameOver = false;
+            firstClick = true;
+            clearInterval(timerInterval);
+            timerEl.textContent = '000';
+            updateMinesCount();
+
+            // Create empty grid
+            boardEl.innerHTML = '';
+            for (let r = 0; r < rows; r++) {
+                let row = [];
+                for (let c = 0; c < cols; c++) {
+                    const cell = {
+                        r, c,
+                        isMine: false,
+                        revealed: false,
+                        flagged: false,
+                        neighborMines: 0,
+                        element: document.createElement('div')
+                    };
+                    cell.element.className = 'cell';
+                    cell.element.addEventListener('click', () => revealCell(r, c));
+                    cell.element.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        toggleFlag(r, c);
+                    });
+                    boardEl.appendChild(cell.element);
+                    row.push(cell);
+                }
+                grid.push(row);
+            }
+        }
+
+        function placeMines(safeR, safeC) {
+            let placed = 0;
+            while (placed < mines) {
+                const r = Math.floor(Math.random() * rows);
+                const c = Math.floor(Math.random() * cols);
+
+                // Don't place mine on first click or neighbors
+                if (!grid[r][c].isMine && Math.abs(r - safeR) > 1 || Math.abs(c - safeC) > 1) {
+                    grid[r][c].isMine = true;
+                    placed++;
+                }
+            }
+
+            // Calculate numbers
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (!grid[r][c].isMine) {
+                        grid[r][c].neighborMines = countNeighborMines(r, c);
+                    }
+                }
+            }
+        }
+
+        function countNeighborMines(r, c) {
+            let count = 0;
+            for (let i = -1; i <= 1; i++) {
+                for (let j = -1; j <= 1; j++) {
+                    const nr = r + i;
+                    const nc = c + j;
+                    if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && grid[nr][nc].isMine) {
+                        count++;
+                    }
+                }
+            }
+            return count;
+        }
+
+        function revealCell(r, c) {
+            if (gameOver || grid[r][c].flagged || grid[r][c].revealed) return;
+
+            if (firstClick) {
+                firstClick = false;
+                placeMines(r, c);
+                startTimer();
+            }
+
+            const cell = grid[r][c];
+            cell.revealed = true;
+            cell.element.classList.add('revealed');
+
+            if (cell.isMine) {
+                cell.element.classList.add('mine');
+                cell.element.innerHTML = '<i class="fas fa-bomb"></i>';
+                gameOver = true;
+                revealAllMines();
+                clearInterval(timerInterval);
+                newGameBtn.innerHTML = '<i class="fas fa-dizzy"></i>';
+                GameInterface.showGameOver({
+                    text: 'Game Over!',
+                    score: 'Boom',
+                    level: difficultySelect.value
+                });
+            } else {
+                if (cell.neighborMines > 0) {
+                    cell.element.textContent = cell.neighborMines;
+                    cell.element.classList.add(`c${cell.neighborMines}`);
+                } else {
+                    // Flood fill
+                    for (let i = -1; i <= 1; i++) {
+                        for (let j = -1; j <= 1; j++) {
+                            const nr = r + i;
+                            const nc = c + j;
+                            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+                                revealCell(nr, nc);
+                            }
+                        }
+                    }
+                }
+                checkWin();
+            }
+        }
+
+        function toggleFlag(r, c) {
+            if (gameOver || grid[r][c].revealed) return;
+
+            const cell = grid[r][c];
+            cell.flagged = !cell.flagged;
+
+            if (cell.flagged) {
+                cell.element.classList.add('flagged');
+                cell.element.innerHTML = '<i class="fas fa-flag"></i>';
+                flags++;
+            } else {
+                cell.element.classList.remove('flagged');
+                cell.element.innerHTML = '';
+                flags--;
+            }
+            updateMinesCount();
+        }
+
+        function updateMinesCount() {
+            minesCountEl.textContent = String(mines - flags).padStart(3, '0');
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                time++;
+                timerEl.textContent = String(time).padStart(3, '0');
+            }, 1000);
+        }
+
+        function revealAllMines() {
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (grid[r][c].isMine) {
+                        grid[r][c].element.classList.add('revealed', 'mine');
+                        grid[r][c].element.innerHTML = '<i class="fas fa-bomb"></i>';
+                    }
+                }
+            }
+        }
+
+        function checkWin() {
+            let unrevealedSafe = 0;
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (!grid[r][c].isMine && !grid[r][c].revealed) {
+                        unrevealedSafe++;
+                    }
+                }
+            }
+
+            if (unrevealedSafe === 0) {
+                gameOver = true;
+                clearInterval(timerInterval);
+                newGameBtn.innerHTML = '<i class="fas fa-sunglasses"></i>';
+                GameInterface.showGameOver({
+                    text: 'You Win!',
+                    score: `Time: ${time}s`,
+                    level: difficultySelect.value
+                });
+            }
+        }
+
+        startNewGame();
+
+    </script>
+</body>
+
+</html>

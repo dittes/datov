@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guess the Colors - DATOV</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: rgba(21, 23, 37, 0.5);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .simon-board {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            width: 300px;
+            height: 300px;
+            position: relative;
+        }
+
+        .simon-btn {
+            border-radius: var(--radius-md);
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            opacity: 0.6;
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.5);
+        }
+
+        .simon-btn:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+
+        .simon-btn.active {
+            opacity: 1;
+            filter: brightness(1.5);
+            transform: scale(0.98);
+        }
+
+        .btn-green {
+            background: #00ff00;
+            box-shadow: 0 0 10px #00ff00;
+        }
+
+        .btn-red {
+            background: #ff0000;
+            box-shadow: 0 0 10px #ff0000;
+        }
+
+        .btn-yellow {
+            background: #ffff00;
+            box-shadow: 0 0 10px #ffff00;
+        }
+
+        .btn-blue {
+            background: #0000ff;
+            box-shadow: 0 0 10px #0000ff;
+        }
+
+        .center-circle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 100px;
+            background: #151725;
+            border-radius: 50%;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        .level-display {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #fff;
+        }
+
+        .status-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .controls {
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="container flex flex-between">
+            <a href="index.html" class="logo">DATOV</a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html#games">Back to Games</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="section" style="padding-top: 8rem;">
+        <div class="container">
+            <div class="game-container">
+                <div class="simon-board">
+                    <button class="simon-btn btn-green" data-color="0"></button>
+                    <button class="simon-btn btn-red" data-color="1"></button>
+                    <button class="simon-btn btn-yellow" data-color="2"></button>
+                    <button class="simon-btn btn-blue" data-color="3"></button>
+
+                    <div class="center-circle">
+                        <div class="level-display" id="levelDisplay">--</div>
+                        <div class="status-text" id="statusDisplay">Press Start</div>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button id="startBtn" class="btn btn-primary">Start Game</button>
+                </div>
+
+                <p style="margin-top: 1rem; color: var(--text-muted);">Watch the sequence and repeat it.</p>
+            </div>
+        </div>
+    </section>
+
+    <script src="game-interface.js"></script>
+    <script>
+        const buttons = document.querySelectorAll('.simon-btn');
+        const levelDisplay = document.getElementById('levelDisplay');
+        const statusDisplay = document.getElementById('statusDisplay');
+        const startBtn = document.getElementById('startBtn');
+
+        let sequence = [];
+        let playerSequence = [];
+        let level = 0;
+        let isPlayingSequence = false;
+
+        // Initialize Game Interface
+        GameInterface.init({
+            name: 'Guess the Colors',
+            description: 'A memory game where you repeat the sequence of flashing colors. How long can you remember?',
+            url: 'game-guess-the-colors.html',
+            howToPlay: [
+                'Watch the sequence of flashing colors.',
+                'Repeat the sequence by clicking the buttons in the same order.',
+                'The sequence gets longer each round.',
+                'One mistake and it\'s Game Over!'
+            ]
+        });
+
+        startBtn.addEventListener('click', startGame);
+
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => handleInput(parseInt(btn.dataset.color)));
+        });
+
+        function startGame() {
+            sequence = [];
+            level = 0;
+            startBtn.disabled = true;
+            nextLevel();
+        }
+
+        function nextLevel() {
+            level++;
+            playerSequence = [];
+            levelDisplay.textContent = level;
+            statusDisplay.textContent = 'Watch';
+
+            sequence.push(Math.floor(Math.random() * 4));
+
+            setTimeout(() => playSequence(), 1000);
+        }
+
+        function playSequence() {
+            isPlayingSequence = true;
+            let i = 0;
+
+            const interval = setInterval(() => {
+                activateButton(sequence[i]);
+                i++;
+
+                if (i >= sequence.length) {
+                    clearInterval(interval);
+                    isPlayingSequence = false;
+                    statusDisplay.textContent = 'Your Turn';
+                }
+            }, 800); // Speed
+        }
+
+        function activateButton(colorIndex) {
+            const btn = buttons[colorIndex];
+            btn.classList.add('active');
+            // Play sound? (Optional)
+
+            setTimeout(() => {
+                btn.classList.remove('active');
+            }, 400);
+        }
+
+        function handleInput(colorIndex) {
+            if (isPlayingSequence) return;
+            if (sequence.length === 0) return; // Game not started
+
+            activateButton(colorIndex);
+            playerSequence.push(colorIndex);
+
+            // Check correctness
+            const currentIndex = playerSequence.length - 1;
+            if (playerSequence[currentIndex] !== sequence[currentIndex]) {
+                gameOver();
+                return;
+            }
+
+            // Check if sequence complete
+            if (playerSequence.length === sequence.length) {
+                statusDisplay.textContent = 'Good!';
+                setTimeout(nextLevel, 1000);
+            }
+        }
+
+        function gameOver() {
+            statusDisplay.textContent = 'Game Over';
+            startBtn.disabled = false;
+            startBtn.textContent = 'Try Again';
+
+            // Flash all buttons
+            buttons.forEach(btn => btn.classList.add('active'));
+            setTimeout(() => {
+                buttons.forEach(btn => btn.classList.remove('active'));
+            }, 500);
+
+            GameInterface.showGameOver({
+                score: level - 1,
+                level: level,
+                text: 'Game Over!'
+            });
+        }
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpeedType - DATOV</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .game-container {
+            position: relative;
+            width: 100%;
+            height: 600px;
+            background: rgba(21, 23, 37, 0.8);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+            margin: 0 auto;
+            max-width: 800px;
+        }
+
+        .word-track {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .falling-word {
+            position: absolute;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #fff;
+            padding: 5px 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 4px;
+            white-space: nowrap;
+            transition: color 0.2s, transform 0.2s;
+        }
+
+        .falling-word.matched {
+            color: #4caf50;
+            transform: scale(1.2);
+            text-shadow: 0 0 10px #4caf50;
+        }
+
+        .falling-word.danger {
+            color: #f44336;
+            animation: shake 0.5s infinite;
+        }
+
+        .input-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 1rem;
+            font-size: 1.5rem;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 8px;
+            color: #000;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.4);
+        }
+
+        .stats-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .lives {
+            color: #f44336;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-2px);
+            }
+
+            75% {
+                transform: translateX(2px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="container flex flex-between">
+            <a href="index.html" class="logo">DATOV</a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html#games">Back to Games</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="section" style="padding-top: 8rem;">
+        <div class="container">
+            <div class="game-container" id="gameArea">
+                <div class="stats-overlay">
+                    <div>Score: <span id="score">0</span></div>
+                    <div>Level: <span id="level">1</span></div>
+                    <div class="lives">Lives: <span id="lives">5</span></div>
+                </div>
+
+                <div class="word-track" id="wordTrack">
+                    <!-- Words fall here -->
+                </div>
+
+                <div class="input-bar">
+                    <input type="text" id="typeInput" placeholder="Type here..." autocomplete="off" autofocus>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 1rem;">
+                <button id="startBtn" class="btn btn-primary">Start Game</button>
+            </div>
+        </div>
+    </section>
+
+    <script src="game-interface.js"></script>
+    <script>
+        const gameArea = document.getElementById('gameArea');
+        const wordTrack = document.getElementById('wordTrack');
+        const typeInput = document.getElementById('typeInput');
+        const scoreEl = document.getElementById('score');
+        const levelEl = document.getElementById('level');
+        const livesEl = document.getElementById('lives');
+        const startBtn = document.getElementById('startBtn');
+
+        const WORDS = [
+            'CODE', 'DATA', 'LINK', 'NODE', 'JAVA', 'HTML', 'FILE', 'TYPE', 'TEXT',
+            'INPUT', 'OUTPUT', 'PRINT', 'ARRAY', 'CLASS', 'CONST', 'WHILE', 'FOR',
+            'IF', 'ELSE', 'TRUE', 'FALSE', 'NULL', 'VOID', 'MAIN', 'ARGS', 'THIS',
+            'SUPER', 'FINAL', 'STATIC', 'PUBLIC', 'IMPORT', 'RETURN', 'SWITCH',
+            'BREAK', 'CATCH', 'THROW', 'TRY', 'ENUM', 'BYTE', 'CHAR', 'LONG',
+            'SHORT', 'FLOAT', 'DOUBLE', 'BOOLEAN', 'STRING', 'OBJECT', 'SYSTEM',
+            'THREAD', 'STREAM', 'READER', 'WRITER', 'BUFFER', 'SOCKET', 'SERVER',
+            'CLIENT', 'PROXY', 'DOMAIN', 'HOST', 'PORT', 'HTTP', 'HTTPS', 'JSON',
+            'XML', 'AJAX', 'REST', 'SOAP', 'API', 'SDK', 'IDE', 'GUI', 'CLI',
+            'SHELL', 'BASH', 'PATH', 'ROOT', 'USER', 'GROUP', 'MODE', 'PERMISSION'
+        ];
+
+        let activeWords = []; // { element, text, x, y, speed }
+        let score = 0;
+        let level = 1;
+        let lives = 5;
+        let gameLoop;
+        let spawnInterval;
+        let isPlaying = false;
+        let spawnRate = 2000;
+        let baseSpeed = 1;
+
+        GameInterface.init({
+            name: 'SpeedType',
+            description: 'Type the falling words before they hit the bottom!',
+            url: 'game-speedtype.html',
+            howToPlay: [
+                'Words fall from the top.',
+                'Type the word and press Enter (or Space).',
+                'Don\'t let them reach the bottom.',
+                'You have 5 lives.'
+            ]
+        });
+
+        startBtn.addEventListener('click', startGame);
+
+        function startGame() {
+            if (isPlaying) return;
+            isPlaying = true;
+            score = 0;
+            level = 1;
+            lives = 5;
+            spawnRate = 2000;
+            baseSpeed = 1;
+            activeWords = [];
+            wordTrack.innerHTML = '';
+            typeInput.value = '';
+            typeInput.focus();
+            updateStats();
+            startBtn.style.display = 'none';
+
+            gameLoop = requestAnimationFrame(update);
+            spawnInterval = setTimeout(spawnWord, spawnRate);
+        }
+
+        function spawnWord() {
+            if (!isPlaying) return;
+
+            const text = WORDS[Math.floor(Math.random() * WORDS.length)];
+            const el = document.createElement('div');
+            el.className = 'falling-word';
+            el.textContent = text;
+
+            // Random X position within bounds
+            const maxX = gameArea.clientWidth - 100;
+            const x = Math.random() * maxX;
+
+            el.style.left = x + 'px';
+            el.style.top = '0px';
+
+            wordTrack.appendChild(el);
+
+            activeWords.push({
+                element: el,
+                text: text.toUpperCase(),
+                x: x,
+                y: 0,
+                speed: baseSpeed + Math.random() * 0.5
+            });
+
+            // Schedule next spawn
+            const nextSpawn = Math.max(500, spawnRate - (level * 50));
+            spawnInterval = setTimeout(spawnWord, nextSpawn);
+        }
+
+        function update() {
+            if (!isPlaying) return;
+
+            // Move words
+            for (let i = activeWords.length - 1; i >= 0; i--) {
+                const word = activeWords[i];
+                word.y += word.speed;
+                word.element.style.top = word.y + 'px';
+
+                // Check collision with bottom
+                if (word.y > gameArea.clientHeight - 60) { // 60px buffer for input bar
+                    loseLife();
+                    removeWord(i);
+                }
+            }
+
+            gameLoop = requestAnimationFrame(update);
+        }
+
+        function removeWord(index) {
+            const word = activeWords[index];
+            if (word && word.element) {
+                word.element.remove();
+            }
+            activeWords.splice(index, 1);
+        }
+
+        function loseLife() {
+            lives--;
+            updateStats();
+            if (lives <= 0) {
+                gameOver();
+            } else {
+                gameArea.style.boxShadow = 'inset 0 0 50px rgba(244, 67, 54, 0.5)';
+                setTimeout(() => gameArea.style.boxShadow = 'none', 200);
+            }
+        }
+
+        function checkInput() {
+            const input = typeInput.value.toUpperCase().trim();
+
+            // Check if input matches any active word
+            const matchIndex = activeWords.findIndex(w => w.text === input);
+
+            if (matchIndex !== -1) {
+                // Match found
+                const word = activeWords[matchIndex];
+                word.element.classList.add('matched');
+
+                score += word.text.length * 10;
+
+                // Level up every 500 points
+                if (Math.floor(score / 500) > level - 1) {
+                    level++;
+                    baseSpeed += 0.2;
+                }
+
+                updateStats();
+                typeInput.value = ''; // Clear input immediately
+
+                // Remove after animation
+                setTimeout(() => {
+                    removeWord(matchIndex);
+                }, 100);
+            }
+        }
+
+        function updateStats() {
+            scoreEl.textContent = score;
+            levelEl.textContent = level;
+            livesEl.textContent = lives;
+        }
+
+        function gameOver() {
+            isPlaying = false;
+            cancelAnimationFrame(gameLoop);
+            clearTimeout(spawnInterval);
+            startBtn.style.display = 'inline-block';
+            startBtn.textContent = 'Play Again';
+
+            GameInterface.showGameOver({
+                text: 'Game Over',
+                score: score,
+                level: level
+            });
+        }
+
+        typeInput.addEventListener('input', checkInput);
+        // Also allow Enter/Space to clear if user wants (though auto-match is better for speed)
+        typeInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                typeInput.value = '';
+            }
+        });
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crime Scene - DATOV</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: rgba(21, 23, 37, 0.5);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .scene-area {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            aspect-ratio: 16/9;
+            background: #000;
+            border: 2px solid var(--primary);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            cursor: crosshair;
+        }
+
+        #sceneCanvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 800px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem;
+            border-radius: var(--radius-sm);
+        }
+
+        .items-list {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .item-to-find {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s;
+        }
+
+        .item-to-find.found {
+            background: rgba(0, 243, 255, 0.2);
+            color: var(--primary);
+            text-decoration: line-through;
+            opacity: 0.5;
+        }
+
+        .hint-btn {
+            background: var(--secondary);
+            color: #fff;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .hint-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .feedback {
+            position: absolute;
+            pointer-events: none;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            animation: floatUp 1s ease-out forwards;
+            z-index: 10;
+        }
+
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-30px);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="container flex flex-between">
+            <a href="index.html" class="logo">DATOV</a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html#games">Back to Games</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="section" style="padding-top: 8rem;">
+        <div class="container">
+            <div class="game-container">
+                <h2>Crime Scene</h2>
+
+                <div class="hud">
+                    <div class="items-list" id="itemsList">
+                        <!-- Items to find -->
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem;">
+                        <div id="timer">Time: 60</div>
+                        <button id="hintBtn" class="hint-btn"><i class="fas fa-lightbulb"></i> Hint (3)</button>
+                    </div>
+                </div>
+
+                <div class="scene-area" id="sceneArea">
+                    <canvas id="sceneCanvas" width="800" height="450"></canvas>
+                </div>
+
+                <div class="controls">
+                    <button id="startBtn" class="btn btn-primary">Start Investigation</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="game-interface.js"></script>
+    <script>
+        const canvas = document.getElementById('sceneCanvas');
+        const ctx = canvas.getContext('2d');
+        const itemsListEl = document.getElementById('itemsList');
+        const timerEl = document.getElementById('timer');
+        const hintBtn = document.getElementById('hintBtn');
+        const startBtn = document.getElementById('startBtn');
+        const sceneArea = document.getElementById('sceneArea');
+
+        // FontAwesome icons to use as hidden objects
+        const OBJECTS = [
+            { name: 'Key', icon: '\uf084' },
+            { name: 'Magnifying Glass', icon: '\uf00e' },
+            { name: 'Camera', icon: '\uf030' },
+            { name: 'Fingerprint', icon: '\uf577' },
+            { name: 'Briefcase', icon: '\uf0b1' },
+            { name: 'Phone', icon: '\uf095' },
+            { name: 'Laptop', icon: '\uf109' },
+            { name: 'Coffee', icon: '\uf0f4' },
+            { name: 'Gun', icon: '\uf718' }, // Maybe too violent? Let's use something else.
+            // Let's replace Gun with something else
+            { name: 'Book', icon: '\uf02d' },
+            { name: 'Glasses', icon: '\uf530' },
+            { name: 'Clock', icon: '\uf017' },
+            { name: 'Diamond', icon: '\uf3a5' },
+            { name: 'Skull', icon: '\uf714' },
+            { name: 'Map', icon: '\uf279' }
+        ];
+
+        let hiddenItems = []; // { x, y, size, obj, found }
+        let targetItems = []; // Subset of hiddenItems to find
+        let hintsLeft = 3;
+        let timeLeft = 60;
+        let timerInterval;
+        let isPlaying = false;
+
+        // Initialize Game Interface
+        GameInterface.init({
+            name: 'Crime Scene',
+            description: 'Hidden Object Game. Find the evidence before time runs out.',
+            url: 'game-crimescene.html',
+            howToPlay: [
+                'Find the items listed at the top.',
+                'Click on the item in the scene when you find it.',
+                'Use hints if you get stuck.',
+                'Find all items before time runs out.'
+            ]
+        });
+
+        startBtn.addEventListener('click', startGame);
+        hintBtn.addEventListener('click', useHint);
+        canvas.addEventListener('click', handleCanvasClick);
+
+        function startGame() {
+            if (isPlaying) return;
+
+            isPlaying = true;
+            timeLeft = 60;
+            hintsLeft = 3;
+            startBtn.style.display = 'none';
+            hintBtn.disabled = false;
+            hintBtn.innerHTML = `<i class="fas fa-lightbulb"></i> Hint (${hintsLeft})`;
+
+            generateScene();
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerEl.textContent = `Time: ${timeLeft}`;
+                if (timeLeft <= 0) {
+                    endGame(false);
+                }
+            }, 1000);
+        }
+
+        function generateScene() {
+            // Clear canvas
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw some random shapes/noise for background complexity
+            for (let i = 0; i < 50; i++) {
+                ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.05})`;
+                ctx.beginPath();
+                ctx.arc(Math.random() * canvas.width, Math.random() * canvas.height, Math.random() * 100, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Place objects
+            hiddenItems = [];
+            // Place ALL objects, but only select some as targets
+            // Or place random subset?
+            // Let's place 10 objects, select 5 to find
+
+            const shuffled = [...OBJECTS].sort(() => 0.5 - Math.random());
+            const itemsToPlace = shuffled.slice(0, 10);
+            targetItems = itemsToPlace.slice(0, 5);
+
+            itemsToPlace.forEach(obj => {
+                const size = 30 + Math.random() * 20;
+                const x = 50 + Math.random() * (canvas.width - 100);
+                const y = 50 + Math.random() * (canvas.height - 100);
+                const rotation = (Math.random() - 0.5) * 1; // Slight rotation
+                const color = `hsl(${Math.random() * 360}, 50%, 70%)`;
+                const opacity = 0.4 + Math.random() * 0.4; // Semi-transparent to blend in
+
+                hiddenItems.push({
+                    x, y, size, obj, rotation, color, opacity, found: false
+                });
+            });
+
+            drawScene();
+            updateItemsList();
+        }
+
+        function drawScene() {
+            // Redraw background
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw background noise again (should probably cache this or use an image)
+            // For simplicity, just redraw objects
+
+            // Draw objects
+            ctx.font = '900 30px "Font Awesome 6 Free"';
+            ctx.textBaseline = 'middle';
+            ctx.textAlign = 'center';
+
+            hiddenItems.forEach(item => {
+                if (item.found) return;
+
+                ctx.save();
+                ctx.translate(item.x, item.y);
+                ctx.rotate(item.rotation);
+                ctx.globalAlpha = item.opacity;
+                ctx.fillStyle = item.color;
+                ctx.font = `900 ${item.size}px "Font Awesome 6 Free"`;
+                ctx.fillText(item.obj.icon, 0, 0);
+                ctx.restore();
+            });
+        }
+
+        function updateItemsList() {
+            itemsListEl.innerHTML = '';
+            targetItems.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'item-to-find';
+
+                // Check if this specific object type is found in hiddenItems
+                // We need to link targetItems to hiddenItems instances
+                const instance = hiddenItems.find(hi => hi.obj.name === item.name);
+
+                if (instance && instance.found) {
+                    div.classList.add('found');
+                    div.innerHTML = `<i class="fas fa-check"></i> ${item.name}`;
+                } else {
+                    div.innerHTML = `<i class="fas fa-search"></i> ${item.name}`;
+                }
+                itemsListEl.appendChild(div);
+            });
+        }
+
+        function handleCanvasClick(e) {
+            if (!isPlaying) return;
+
+            const rect = canvas.getBoundingClientRect();
+            // Scale coordinates because canvas CSS size might differ from internal size
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
+            const clickX = (e.clientX - rect.left) * scaleX;
+            const clickY = (e.clientY - rect.top) * scaleY;
+
+            let clickedItem = null;
+
+            // Check collision
+            // Reverse order to check top items first
+            for (let i = hiddenItems.length - 1; i >= 0; i--) {
+                const item = hiddenItems[i];
+                if (item.found) continue;
+
+                // Simple circle collision
+                const dx = clickX - item.x;
+                const dy = clickY - item.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < item.size / 1.5) { // Approximate hit area
+                    clickedItem = item;
+                    break;
+                }
+            }
+
+            if (clickedItem) {
+                // Check if it's a target item
+                const isTarget = targetItems.some(t => t.name === clickedItem.obj.name);
+
+                if (isTarget) {
+                    clickedItem.found = true;
+                    showFeedback(e.clientX, e.clientY, 'Found!', '#00f3ff');
+                    drawScene();
+                    updateItemsList();
+                    checkWin();
+                } else {
+                    // Penalty for clicking wrong item?
+                    timeLeft -= 5;
+                    showFeedback(e.clientX, e.clientY, '-5s', '#ff00ff');
+                }
+            }
+        }
+
+        function showFeedback(x, y, text, color) {
+            const el = document.createElement('div');
+            el.className = 'feedback';
+            el.textContent = text;
+            el.style.left = x + 'px';
+            el.style.top = y + 'px';
+            el.style.color = color;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 1000);
+        }
+
+        function useHint() {
+            if (!isPlaying || hintsLeft <= 0) return;
+
+            // Find an unfound target item
+            const unfoundTarget = targetItems.find(t => {
+                const instance = hiddenItems.find(hi => hi.obj.name === t.name);
+                return instance && !instance.found;
+            });
+
+            if (unfoundTarget) {
+                const instance = hiddenItems.find(hi => hi.obj.name === unfoundTarget.name);
+
+                // Draw a circle around it temporarily
+                ctx.save();
+                ctx.strokeStyle = '#ffff00';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(instance.x, instance.y, instance.size + 10, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+
+                hintsLeft--;
+                hintBtn.innerHTML = `<i class="fas fa-lightbulb"></i> Hint (${hintsLeft})`;
+                if (hintsLeft <= 0) hintBtn.disabled = true;
+
+                // Remove hint circle after 2s
+                setTimeout(drawScene, 2000);
+            }
+        }
+
+        function checkWin() {
+            const allFound = targetItems.every(t => {
+                const instance = hiddenItems.find(hi => hi.obj.name === t.name);
+                return instance && instance.found;
+            });
+
+            if (allFound) {
+                endGame(true);
+            }
+        }
+
+        function endGame(win) {
+            isPlaying = false;
+            clearInterval(timerInterval);
+            startBtn.style.display = 'block';
+
+            GameInterface.showGameOver({
+                text: win ? 'Case Closed!' : 'Time\'s Up!',
+                score: win ? timeLeft * 10 : 0,
+                level: 'Detective'
+            });
+        }
+
+    </script>
+</body>
+
+</html>

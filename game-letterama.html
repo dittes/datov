@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Letterama - DATOV</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            padding: 2rem;
+            background: rgba(21, 23, 37, 0.5);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .letters-container {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin: 2rem 0;
+        }
+
+        .letter-tile {
+            width: 60px;
+            height: 60px;
+            background: #333;
+            border: 2px solid #555;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            user-select: none;
+        }
+
+        .letter-tile:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+        }
+
+        .letter-tile.used {
+            background: #222;
+            color: #555;
+            border-color: #333;
+            transform: none;
+            cursor: default;
+        }
+
+        .current-word {
+            min-height: 60px;
+            font-size: 2.5rem;
+            font-weight: bold;
+            letter-spacing: 0.2rem;
+            color: var(--primary);
+            text-align: center;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .found-words {
+            width: 100%;
+            min-height: 100px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-content: flex-start;
+        }
+
+        .found-tag {
+            padding: 0.2rem 0.8rem;
+            background: rgba(0, 243, 255, 0.1);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .shuffle-btn {
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .shuffle-btn:hover {
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="container flex flex-between">
+            <a href="index.html" class="logo">DATOV</a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html#games">Back to Games</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="section" style="padding-top: 8rem;">
+        <div class="container">
+            <div class="game-container">
+                <div class="flex flex-between" style="width: 100%;">
+                    <div>Score: <span id="score">0</span></div>
+                    <div>Found: <span id="foundCount">0</span></div>
+                </div>
+
+                <div class="current-word" id="currentWord"></div>
+
+                <div class="letters-container" id="lettersContainer">
+                    <!-- Letters go here -->
+                </div>
+
+                <div class="controls-row">
+                    <button id="shuffleBtn" class="shuffle-btn" title="Shuffle"><i class="fas fa-random"></i></button>
+                    <button id="clearBtn" class="btn btn-outline">Clear</button>
+                    <button id="submitBtn" class="btn btn-primary">Submit</button>
+                </div>
+
+                <div class="found-words" id="foundWords">
+                    <!-- Found words go here -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="game-interface.js"></script>
+    <script>
+        const lettersContainer = document.getElementById('lettersContainer');
+        const currentWordEl = document.getElementById('currentWord');
+        const foundWordsEl = document.getElementById('foundWords');
+        const scoreEl = document.getElementById('score');
+        const foundCountEl = document.getElementById('foundCount');
+        const submitBtn = document.getElementById('submitBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const shuffleBtn = document.getElementById('shuffleBtn');
+
+        // Simple dictionary for demo purposes. In a real app, this would be larger or fetched.
+        const DICTIONARY = [
+            'MASTER', 'STREAM', 'TAMERS', 'MATERS', 'RAMETS',
+            'TEAMS', 'MATES', 'MEATS', 'STEAM', 'TAMES', 'RATES', 'STARE', 'TEARS', 'TERMS', 'SMART',
+            'TEAM', 'MEAT', 'TAME', 'RATE', 'STAR', 'TEAR', 'TERM', 'MAST', 'REST', 'SEAT', 'EAST', 'EATS', 'ARTS', 'ARMS', 'MARS',
+            'TEA', 'EAT', 'ART', 'ARM', 'SEA', 'SET', 'SAT', 'RAT', 'MAT', 'MET', 'EAR', 'ERA'
+        ];
+
+        const BASE_WORD = 'MASTER'; // The 6-letter word to form others from
+        let currentLetters = [];
+        let formedWord = '';
+        let foundWords = [];
+        let score = 0;
+
+        GameInterface.init({
+            name: 'Letterama',
+            description: 'Form as many words as you can from the given letters.',
+            url: 'game-letterama.html',
+            howToPlay: [
+                'Click letters to form a word.',
+                'Press Submit to check if it\'s valid.',
+                'Find all possible words!',
+                'Longer words give more points.'
+            ]
+        });
+
+        function initGame() {
+            currentLetters = BASE_WORD.split('').sort(() => 0.5 - Math.random());
+            renderLetters();
+            updateUI();
+        }
+
+        function renderLetters() {
+            lettersContainer.innerHTML = '';
+            currentLetters.forEach((char, index) => {
+                const tile = document.createElement('div');
+                tile.className = 'letter-tile';
+                tile.textContent = char;
+                tile.onclick = () => addLetter(char, index, tile);
+                lettersContainer.appendChild(tile);
+            });
+        }
+
+        function addLetter(char, index, tile) {
+            if (tile.classList.contains('used')) return;
+
+            formedWord += char;
+            tile.classList.add('used');
+            tile.dataset.index = index; // Track which tile was used
+            updateUI();
+        }
+
+        function clearWord() {
+            formedWord = '';
+            const tiles = document.querySelectorAll('.letter-tile');
+            tiles.forEach(t => t.classList.remove('used'));
+            updateUI();
+        }
+
+        function shuffleLetters() {
+            clearWord();
+            currentLetters.sort(() => 0.5 - Math.random());
+            renderLetters();
+        }
+
+        function submitWord() {
+            if (formedWord.length < 3) {
+                showMessage('Too short!', 'error');
+                clearWord();
+                return;
+            }
+
+            if (foundWords.includes(formedWord)) {
+                showMessage('Already found!', 'warning');
+                clearWord();
+                return;
+            }
+
+            if (DICTIONARY.includes(formedWord)) {
+                // Success
+                foundWords.push(formedWord);
+                score += calculateScore(formedWord);
+                addFoundTag(formedWord);
+                clearWord();
+                updateUI();
+
+                if (foundWords.length === DICTIONARY.length) {
+                    GameInterface.showGameOver({
+                        text: 'All Words Found!',
+                        score: score,
+                        level: 'Master'
+                    });
+                }
+            } else {
+                showMessage('Not in word list', 'error');
+                clearWord();
+            }
+        }
+
+        function calculateScore(word) {
+            return word.length * 10;
+        }
+
+        function addFoundTag(word) {
+            const tag = document.createElement('span');
+            tag.className = 'found-tag';
+            tag.textContent = word;
+            foundWordsEl.appendChild(tag);
+        }
+
+        function updateUI() {
+            currentWordEl.textContent = formedWord;
+            scoreEl.textContent = score;
+            foundCountEl.textContent = `${foundWords.length} / ${DICTIONARY.length}`;
+        }
+
+        function showMessage(text, type) {
+            currentWordEl.textContent = text;
+            currentWordEl.style.color = type === 'error' ? '#f44336' : '#ff9800';
+            setTimeout(() => {
+                currentWordEl.textContent = formedWord;
+                currentWordEl.style.color = 'var(--primary)';
+            }, 1000);
+        }
+
+        submitBtn.onclick = submitWord;
+        clearBtn.onclick = clearWord;
+        shuffleBtn.onclick = shuffleLetters;
+
+        // Keyboard support
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') submitWord();
+            if (e.key === 'Backspace') {
+                // Remove last letter logic would be complex with current DOM structure
+                // For MVP, just clear
+                clearWord();
+            }
+            if (e.key === ' ') shuffleLetters();
+        });
+
+        initGame();
+
+    </script>
+</body>
+
+</html>

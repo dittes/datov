@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TriviaNut - DATOV</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: rgba(21, 23, 37, 0.5);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            max-width: 800px;
+            margin: 0 auto;
+            min-height: 500px;
+        }
+
+        .category-badge {
+            background: rgba(0, 243, 255, 0.1);
+            color: var(--primary);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+
+        .question-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2rem;
+            border-radius: var(--radius-sm);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .question-text {
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+            line-height: 1.4;
+        }
+
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .option-btn {
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-sm);
+            color: var(--text-main);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .option-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--primary);
+            transform: translateX(5px);
+        }
+
+        .option-btn.correct {
+            background: var(--primary);
+            color: #000;
+            border-color: var(--primary);
+        }
+
+        .option-btn.wrong {
+            background: #ff4444;
+            border-color: #ff4444;
+        }
+
+        .option-letter {
+            font-weight: bold;
+            color: var(--secondary);
+            width: 20px;
+        }
+
+        .option-btn.correct .option-letter,
+        .option-btn.wrong .option-letter {
+            color: inherit;
+        }
+
+        .streak-bar {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 1rem;
+        }
+
+        .streak-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .streak-dot.active {
+            background: var(--secondary);
+            box-shadow: 0 0 10px var(--secondary);
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="container flex flex-between">
+            <a href="index.html" class="logo">DATOV</a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html#games">Back to Games</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="section" style="padding-top: 8rem;">
+        <div class="container">
+            <div class="game-container">
+                <h2>TriviaNut</h2>
+
+                <div class="hud" style="display: flex; justify-content: space-between; width: 100%; max-width: 600px;">
+                    <div>Score: <span id="score">0</span></div>
+                    <div class="streak-bar" id="streakBar">
+                        <!-- Streak dots -->
+                    </div>
+                </div>
+
+                <div class="question-card" id="questionCard" style="display: none;">
+                    <div class="category-badge" id="categoryBadge">Science</div>
+                    <div class="question-text" id="questionText">Question text goes here?</div>
+                    <div class="options-list" id="optionsList">
+                        <!-- Options -->
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button id="startBtn" class="btn btn-primary">Start Trivia</button>
+                    <button id="nextBtn" class="btn btn-primary" style="display: none;">Next Question</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="game-interface.js"></script>
+    <script>
+        const questionCard = document.getElementById('questionCard');
+        const categoryBadge = document.getElementById('categoryBadge');
+        const questionText = document.getElementById('questionText');
+        const optionsList = document.getElementById('optionsList');
+        const startBtn = document.getElementById('startBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const scoreEl = document.getElementById('score');
+        const streakBar = document.getElementById('streakBar');
+
+        const QUESTIONS = [
+            {
+                category: 'Science',
+                question: 'What is the chemical symbol for Gold?',
+                options: ['Ag', 'Au', 'Fe', 'Cu'],
+                answer: 1
+            },
+            {
+                category: 'Geography',
+                question: 'Which is the largest ocean on Earth?',
+                options: ['Atlantic Ocean', 'Indian Ocean', 'Arctic Ocean', 'Pacific Ocean'],
+                answer: 3
+            },
+            {
+                category: 'History',
+                question: 'Who was the first person to walk on the Moon?',
+                options: ['Buzz Aldrin', 'Yuri Gagarin', 'Neil Armstrong', 'Michael Collins'],
+                answer: 2
+            },
+            {
+                category: 'Tech',
+                question: 'What does "HTML" stand for?',
+                options: ['Hyper Text Markup Language', 'High Tech Modern Language', 'Hyper Transfer Mode Link', 'Home Tool Markup Language'],
+                answer: 0
+            },
+            {
+                category: 'Pop Culture',
+                question: 'Which house does Harry Potter belong to?',
+                options: ['Slytherin', 'Hufflepuff', 'Ravenclaw', 'Gryffindor'],
+                answer: 3
+            },
+            {
+                category: 'Nature',
+                question: 'How many hearts does an octopus have?',
+                options: ['One', 'Two', 'Three', 'Four'],
+                answer: 2
+            },
+            {
+                category: 'Sports',
+                question: 'In which sport would you perform a slam dunk?',
+                options: ['Tennis', 'Golf', 'Basketball', 'Volleyball'],
+                answer: 2
+            },
+            {
+                category: 'Art',
+                question: 'Who painted the Mona Lisa?',
+                options: ['Vincent van Gogh', 'Pablo Picasso', 'Leonardo da Vinci', 'Claude Monet'],
+                answer: 2
+            },
+            {
+                category: 'Food',
+                question: 'What is the main ingredient in Guacamole?',
+                options: ['Tomato', 'Avocado', 'Onion', 'Pepper'],
+                answer: 1
+            },
+            {
+                category: 'Space',
+                question: 'Which planet is known as the Red Planet?',
+                options: ['Venus', 'Jupiter', 'Mars', 'Saturn'],
+                answer: 2
+            }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        let streak = 0;
+        let isAnswered = false;
+
+        // Initialize Game Interface
+        GameInterface.init({
+            name: 'TriviaNut',
+            description: 'Test your general knowledge across various categories.',
+            url: 'game-trivianut.html',
+            howToPlay: [
+                'Click "Start Trivia" to begin.',
+                'Select the correct answer from the options.',
+                'Build a streak for bonus points.',
+                'Answer all questions to win.'
+            ]
+        });
+
+        startBtn.addEventListener('click', startTrivia);
+        nextBtn.addEventListener('click', nextQuestion);
+
+        function startTrivia() {
+            score = 0;
+            currentQuestion = 0;
+            streak = 0;
+            scoreEl.textContent = score;
+            startBtn.style.display = 'none';
+            updateStreak();
+            playRound();
+        }
+
+        function playRound() {
+            if (currentQuestion >= QUESTIONS.length) {
+                endGame();
+                return;
+            }
+
+            const data = QUESTIONS[currentQuestion];
+
+            // Reset UI
+            isAnswered = false;
+            nextBtn.style.display = 'none';
+            questionCard.style.display = 'block';
+
+            categoryBadge.textContent = data.category;
+            questionText.textContent = data.question;
+
+            optionsList.innerHTML = '';
+            const letters = ['A', 'B', 'C', 'D'];
+
+            data.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerHTML = `<span class="option-letter">${letters[idx]}</span> ${opt}`;
+                btn.onclick = () => handleAnswer(idx, btn);
+                optionsList.appendChild(btn);
+            });
+        }
+
+        function handleAnswer(idx, btn) {
+            if (isAnswered) return;
+            isAnswered = true;
+
+            const data = QUESTIONS[currentQuestion];
+            const buttons = optionsList.querySelectorAll('.option-btn');
+
+            if (idx === data.answer) {
+                btn.classList.add('correct');
+                streak++;
+                const points = 100 + (streak * 10);
+                score += points;
+                scoreEl.textContent = score;
+                GameInterface.showMessage('Correct!', `+${points} points (Streak: ${streak})`);
+            } else {
+                btn.classList.add('wrong');
+                buttons[data.answer].classList.add('correct');
+                streak = 0;
+                GameInterface.showMessage('Wrong!', 'Streak reset.');
+            }
+
+            updateStreak();
+            nextBtn.style.display = 'inline-block';
+        }
+
+        function updateStreak() {
+            streakBar.innerHTML = '';
+            for (let i = 0; i < 5; i++) {
+                const dot = document.createElement('div');
+                dot.className = `streak-dot ${i < streak ? 'active' : ''}`;
+                streakBar.appendChild(dot);
+            }
+        }
+
+        function nextQuestion() {
+            GameInterface.hideOverlay();
+            currentQuestion++;
+            playRound();
+        }
+
+        function endGame() {
+            GameInterface.showGameOver({
+                text: 'Trivia Complete!',
+                score: score,
+                level: score > 1000 ? 'Trivia Master' : 'Novice'
+            });
+            startBtn.style.display = 'inline-block';
+            startBtn.textContent = 'Play Again';
+            questionCard.style.display = 'none';
+        }
+
+    </script>
+</body>
+
+</html>
